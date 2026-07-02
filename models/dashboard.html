@@ -256,10 +256,10 @@ const MODELS = [
       "audio": false
     },
     "releaseDate": "2025-Q4",
-    "notes": "2026-07-24废弃。",
+    "notes": "2026-07-24废弃。R1-0528:LCB73.3,AIME87.5,GPQA81.0。",
     "dataStatus": "partial",
     "sourcePricing": "https://api-docs.deepseek.com/quick_start/pricing",
-    "sourceBenchmark": null
+    "sourceBenchmark": "https://www.datalearner.com/en/ai-models/compare/deepseek-v4-pro/vs/DeepSeek-R1-0528"
   },
   {
     "id": "zhipu/glm-5.2",
@@ -306,6 +306,8 @@ const MODELS = [
       "cacheHit": 1.3
     },
     "scores": {
+      "coding": 77.2,
+      "reasoning": 86.2,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -321,10 +323,11 @@ const MODELS = [
       "video": false,
       "audio": false
     },
-    "releaseDate": "2026-Q2",
-    "notes": "≤32K¥6/24,>32K¥8/28。缓存限免。",
+    "releaseDate": "2026-03",
+    "notes": "推理模型。华为昇腾训练。LCB77.2,GPQA86.2,AIME95.3,SWE-bench58.4。",
     "dataStatus": "confirmed",
-    "sourcePricing": "https://open.bigmodel.cn/pricing"
+    "sourcePricing": "https://open.bigmodel.cn/pricing",
+    "sourceBenchmark": "https://www.datalearner.com/ai-models/compare/glm-5-2/vs/glm-5-1"
   },
   {
     "id": "zhipu/glm-5-turbo",
@@ -368,6 +371,8 @@ const MODELS = [
       "cacheHit": 1
     },
     "scores": {
+      "coding": 68.9,
+      "reasoning": 86,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -383,10 +388,11 @@ const MODELS = [
       "video": false,
       "audio": false
     },
-    "releaseDate": "2025-Q4",
-    "notes": "≤32K¥4/18,>32K¥6/22。缓存限免。",
+    "releaseDate": "2026-02",
+    "notes": "聊天模型。LCB68.9,GPQA86.0,AIME92.7。",
     "dataStatus": "confirmed",
-    "sourcePricing": "https://open.bigmodel.cn/pricing"
+    "sourcePricing": "https://open.bigmodel.cn/pricing",
+    "sourceBenchmark": "https://www.datalearner.com/ai-models/compare/glm-5-1/vs/glm-5"
   },
   {
     "id": "zhipu/glm-4.7",
@@ -1369,6 +1375,8 @@ const MODELS = [
       "cacheHit": 0.64
     },
     "scores": {
+      "coding": 87.8,
+      "reasoning": 88.9,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1384,10 +1392,11 @@ const MODELS = [
       "video": true,
       "audio": false
     },
-    "releaseDate": "2026-Q2",
-    "notes": "阶梯:≤32K¥3.2/16,32-128K¥4.8/24,>128K¥9.6/48。Batch半价。",
+    "releaseDate": "2026-02",
+    "notes": "MMLU-Pro87.0,GPQA88.9,LCB87.8,AIME2025=98.3。视频SOTA,Agent强。",
     "dataStatus": "confirmed",
-    "sourcePricing": "https://www.volcengine.com/docs/82379/1544106?lang=zh"
+    "sourcePricing": "https://www.volcengine.com/docs/82379/1544106?lang=zh",
+    "sourceBenchmark": "https://evolink.ai/zh/blog/doubao-seed-2-0-review-benchmarks-pricing"
   },
   {
     "id": "bytedance/seed-2.0-lite",
@@ -2320,12 +2329,14 @@ const MODELS = [
       "cacheHit": 0.14
     },
     "scores": {
+      "coding": 86.4,
+      "reasoning": 97.3,
       "chinese": null,
       "creative": null,
       "speed": null
     },
     "specs": {
-      "contextWindow": 131072,
+      "contextWindow": 256000,
       "maxOutput": 8192,
       "supportsTools": true,
       "supportsJson": true
@@ -2335,10 +2346,11 @@ const MODELS = [
       "video": false,
       "audio": false
     },
-    "releaseDate": "2026-Q1",
-    "notes": "推理模型。¥0.7极低。",
+    "releaseDate": "2026-02",
+    "notes": "Agent基座。196B MoE,11B激活。LCB86.4,AIME97.3,SWE-bench74.4,登顶OpenRouter趋势榜。",
     "dataStatus": "confirmed",
-    "sourcePricing": "https://platform.stepfun.com/docs/zh/guides/pricing/details"
+    "sourcePricing": "https://platform.stepfun.com/docs/zh/guides/pricing/details",
+    "sourceBenchmark": "https://llm-stats.com/models/compare/mimo-v2-flash-vs-step-3.5-flash"
   },
   {
     "id": "stepfun/step-1o-turbo-vision",
@@ -2592,9 +2604,6 @@ const MODELS = [
     "sourcePricing": "https://ai.google.dev/pricing"
   }
 ]
-
-// ═══════════════════════════ Variables & Init ══════════════════════
-let sortField = "displayName";
 let sortDir = 1;
 
 function initProviders() {
