@@ -1554,10 +1554,10 @@ function fmtContext(v) {
 
 function fmtBool(v) { return v ? '<span class="bool-true">✅</span>' : '<span class="bool-false">—</span>'; }
 
-function tierBadge(t) {
+function typeBadge(t) {
   const map = {domestic:'type-domestic',international:'type-international',deprecated:'type-deprecated'};
   const label = {domestic:'国内',international:'国际',deprecated:'淘汰'};
-  return `<span class="type ${map[t]||''}">${label[t]||t}</span>`;
+  return `<span class="type-badge ${map[t]||''}">${label[t]||t}</span>`;
 }
 
 function providerChip(p) {
@@ -1624,7 +1624,7 @@ function getNested(obj, path) {
 
 function render() {
   const search = (document.getElementById("search").value||"").toLowerCase();
-  const filterTier = document.getElementById("filterTier").value;
+  const filterType = document.getElementById("filterType").value;
   const filterProvider = document.getElementById("filterProvider").value;
   const filterVerified = document.getElementById("filterVerified").value;
 
@@ -1633,7 +1633,7 @@ function render() {
       const hay = (m.displayName + " " + m.provider + " " + m.id + " " + (m.notes||"")).toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    if (filterTier && m.type !== filterTier) return false;
+    if (filterType && m.type !== filterType) return false;
     if (filterProvider && m.provider !== filterProvider) return false;
     if (filterVerified && m.dataStatus !== filterVerified) return false;
     return true;
@@ -1666,7 +1666,7 @@ function render() {
     html += `<tr>
       <td><span class="bold">${m.displayName}</span><br><span class="small">${m.id}</span></td>
       <td>${providerChip(m.provider)}</td>
-      <td>${tierBadge(m.type)}</td>
+      <td>${typeBadge(m.type)}</td>
       <td class="price">${fmtPrice(m.pricing.input)}</td>
       <td class="price">${fmtPrice(m.pricing.output)}</td>
       <td class="price">${m.pricing.cacheHit != null ? fmtPrice(m.pricing.cacheHit) : '<span class="muted">—</span>'}</td>
