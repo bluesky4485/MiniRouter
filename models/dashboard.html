@@ -2470,7 +2470,11 @@ const MODELS = [
     "sourcePricing": "https://ai.google.dev/pricing",
     "sourceBenchmark": null
   }
-]
+];
+
+// ═══════════════════════════ Variables ═══════════════════════════
+let sortField = "displayName";
+let sortDir = 1;
 
 function initProviders() {
   const providers = [...new Set(MODELS.map(m=>m.provider))].sort();
