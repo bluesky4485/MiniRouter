@@ -34,6 +34,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "serve": "tsx src/server/serve.ts",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",

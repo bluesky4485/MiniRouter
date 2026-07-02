@@ -1,21 +1,79 @@
 /**
- * Models API Routes
+ * Database-backed model score routes.
  *
- * GET  /api/models        — list all models (with filters)
- * GET  /api/models/:id    — get single model
- * PUT  /api/models/:id    — update model (price, scores, tier, notes)
+ * GET /api/models      - list model scorecards for the dashboard
+ * GET /api/models/:id  - get one model scorecard
+ * PUT /api/models/:id  - update editable scorecard fields
  */
 
 import type { Context } from "hono";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "../../db/connection.js";
 import { modelScores } from "../../db/schema.js";
-import { eq, and, like, sql } from "drizzle-orm";
 
-export async function listModels(c: Context) {
+type ModelScoreRow = typeof modelScores.$inferSelect;
+
+export function mapModelScoreRow(r: ModelScoreRow) {
+  const dataStatus = r.verified ? "confirmed" : r.notes ? "partial" : "unverified";
+  const importedFromLlmStats = r.notes?.includes("Imported from LLM Stats") ?? false;
+
+  return {
+    id: r.id,
+    provider: r.provider,
+    displayName: r.displayName,
+    type: r.type,
+    dataStatus,
+    pricing: {
+      input: r.priceInput,
+      output: r.priceOutput,
+      cacheHit: r.priceCacheHit,
+      peakMultiplier: r.peakMultiplier,
+      peakHours: r.peakHours,
+      tokenPlan: r.tokenPlan,
+    },
+    scores: {
+      coding: r.scoreCoding,
+      reasoning: r.scoreReasoning,
+      chinese: r.scoreChinese,
+      creative: r.scoreCreative,
+      speed: r.scoreSpeed,
+      overall: r.scoreOverall,
+    },
+    multimodal: {
+      vision: !!r.hasVision,
+      video: !!r.hasVideo,
+      audio: !!r.hasAudio,
+    },
+    specs: {
+      contextWindow: r.contextWindow,
+      maxOutput: r.maxOutput,
+      supportsTools: !!r.supportsTools,
+      supportsJson: !!r.supportsJson,
+    },
+    openrouter: {
+      rank: r.orRank,
+      weeklyVolume: r.orWeeklyVolume,
+      weeklyChange: r.orWeeklyChange,
+    },
+    sourcePricing: r.sourcePricing ?? undefined,
+    sourceBenchmark: r.sourceBenchmark
+      ? r.sourceBenchmark
+      : importedFromLlmStats
+        ? "https://llm-stats.com/leaderboards/llm-leaderboard"
+        : undefined,
+    isActive: !!r.isActive,
+    priority: r.priority,
+    releaseDate: r.releaseDate,
+    notes: r.notes,
+    verified: !!r.verified,
+    updatedAt: r.updatedAt,
+  };
+}
+
+export async function listModelScores(c: Context) {
   const db = getDb();
 
-  // Filters
-  const tier = c.req.query("tier"); // "domestic" | "international" | "deprecated"
+  const type = c.req.query("type") ?? c.req.query("tier");
   const provider = c.req.query("provider");
   const search = c.req.query("search");
   const isActive = c.req.query("active");
@@ -23,20 +81,17 @@ export async function listModels(c: Context) {
   const supportsTools = c.req.query("tools");
 
   const conditions = [];
-  if (tier) conditions.push(eq(modelScores.tier, tier));
+  if (type) conditions.push(eq(modelScores.type, type));
   if (provider) conditions.push(eq(modelScores.provider, provider));
   if (isActive === "true") conditions.push(eq(modelScores.isActive, 1));
   if (isActive === "false") conditions.push(eq(modelScores.isActive, 0));
   if (hasVision === "true") conditions.push(eq(modelScores.hasVision, 1));
   if (supportsTools === "true") conditions.push(eq(modelScores.supportsTools, 1));
 
-  const query = conditions.length > 0
-    ? db.select().from(modelScores).where(and(...conditions))
-    : db.select().from(modelScores);
+  const rows = conditions.length > 0
+    ? await db.select().from(modelScores).where(and(...conditions))
+    : await db.select().from(modelScores);
 
-  const rows = await query;
-
-  // Client-side search filter (SQLite LIKE doesn't work well with Chinese)
   let result = rows;
   if (search) {
     const q = search.toLowerCase();
@@ -44,127 +99,57 @@ export async function listModels(c: Context) {
       r.displayName.toLowerCase().includes(q) ||
       r.provider.toLowerCase().includes(q) ||
       r.id.toLowerCase().includes(q) ||
-      (r.notes && r.notes.toLowerCase().includes(q)),
+      (r.notes?.toLowerCase().includes(q) ?? false),
     );
   }
 
-  // Map snake_case DB columns to camelCase JSON
-  const models = result.map((r) => ({
-    id: r.id,
-    provider: r.provider,
-    displayName: r.displayName,
-    tier: r.tier,
-    pricing: {
-      input: r.priceInput,
-      output: r.priceOutput,
-      cacheHit: r.priceCacheHit,
-      peakMultiplier: r.peakMultiplier,
-      peakHours: r.peakHours,
-      tokenPlan: r.tokenPlan,
-    },
-    scores: {
-      coding: r.scoreCoding,
-      reasoning: r.scoreReasoning,
-      chinese: r.scoreChinese,
-      creative: r.scoreCreative,
-      speed: r.scoreSpeed,
-      overall: r.scoreOverall,
-    },
-    multimodal: {
-      vision: !!r.hasVision,
-      video: !!r.hasVideo,
-      audio: !!r.hasAudio,
-    },
-    specs: {
-      contextWindow: r.contextWindow,
-      maxOutput: r.maxOutput,
-      supportsTools: !!r.supportsTools,
-      supportsJson: !!r.supportsJson,
-    },
-    openrouter: {
-      rank: r.orRank,
-      weeklyVolume: r.orWeeklyVolume,
-      weeklyChange: r.orWeeklyChange,
-    },
-    isActive: !!r.isActive,
-    priority: r.priority,
-    releaseDate: r.releaseDate,
-    notes: r.notes,
-    verified: !!r.verified,
-    updatedAt: r.updatedAt,
-  }));
-
+  const models = result.map(mapModelScoreRow);
   return c.json({ data: models, count: models.length });
 }
 
-export async function getModel(c: Context) {
+export async function getModelScore(c: Context) {
   const db = getDb();
   const id = c.req.param("id");
+  if (!id) return c.json({ error: "Model id is required" }, 400);
+
   const row = await db.select().from(modelScores).where(eq(modelScores.id, id)).limit(1);
 
   if (!row.length) return c.json({ error: "Model not found" }, 404);
 
-  const r = row[0];
-  return c.json({
-    id: r.id,
-    provider: r.provider,
-    displayName: r.displayName,
-    tier: r.tier,
-    pricing: {
-      input: r.priceInput,
-      output: r.priceOutput,
-      cacheHit: r.priceCacheHit,
-      peakMultiplier: r.peakMultiplier,
-      peakHours: r.peakHours,
-      tokenPlan: r.tokenPlan,
-    },
-    scores: {
-      coding: r.scoreCoding,
-      reasoning: r.scoreReasoning,
-      chinese: r.scoreChinese,
-      creative: r.scoreCreative,
-      speed: r.scoreSpeed,
-      overall: r.scoreOverall,
-    },
-    multimodal: {
-      vision: !!r.hasVision,
-      video: !!r.hasVideo,
-      audio: !!r.hasAudio,
-    },
-    specs: {
-      contextWindow: r.contextWindow,
-      maxOutput: r.maxOutput,
-      supportsTools: !!r.supportsTools,
-      supportsJson: !!r.supportsJson,
-    },
-    openrouter: {
-      rank: r.orRank,
-      weeklyVolume: r.orWeeklyVolume,
-      weeklyChange: r.orWeeklyChange,
-    },
-    isActive: !!r.isActive,
-    priority: r.priority,
-    releaseDate: r.releaseDate,
-    notes: r.notes,
-    verified: !!r.verified,
-  });
+  return c.json(mapModelScoreRow(row[0]));
 }
 
-export async function updateModel(c: Context) {
+export async function updateModelScore(c: Context) {
   const db = getDb();
   const id = c.req.param("id");
-  const body = await c.req.json();
+  if (!id) return c.json({ error: "Model id is required" }, 400);
 
-  // Only allow updating specific fields
-  const allowed = ["tier", "priceInput", "priceOutput", "priceCacheHit",
-    "scoreCoding", "scoreReasoning", "scoreChinese", "scoreCreative", "scoreSpeed", "scoreOverall",
-    "isActive", "priority", "notes", "verified", "orRank", "orWeeklyVolume", "orWeeklyChange"];
+  const body = await c.req.json();
+  const allowed = [
+    "type",
+    "priceInput",
+    "priceOutput",
+    "priceCacheHit",
+    "scoreCoding",
+    "scoreReasoning",
+    "scoreChinese",
+    "scoreCreative",
+    "scoreSpeed",
+    "scoreOverall",
+    "isActive",
+    "priority",
+    "notes",
+    "verified",
+    "orRank",
+    "orWeeklyVolume",
+    "orWeeklyChange",
+  ];
   const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
 
   for (const key of Object.keys(body)) {
-    const dbKey = key.replace(/[A-Z]/g, (c) => "_" + c.toLowerCase()); // camelCase → snake_case
-    if (allowed.includes(dbKey)) {
-      updates[dbKey] = body[key];
+    const updateKey = key === "tier" ? "type" : key;
+    if (allowed.includes(updateKey)) {
+      updates[updateKey] = body[key];
     }
   }
 

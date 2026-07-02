@@ -11,3 +11,4 @@ dist-e2e/
 *.db
 *.db-journal
 *.db-wal
+tmp/

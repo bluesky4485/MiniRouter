@@ -228,12 +228,12 @@ export const modelScores = sqliteTable(
     tokenPlan: text("token_plan"), // 套餐说明
 
     // 能力评分 (0-100)
-    scoreCoding: integer("score_coding").default(0),
-    scoreReasoning: integer("score_reasoning").default(0),
-    scoreChinese: integer("score_chinese").default(0),
-    scoreCreative: integer("score_creative").default(0),
-    scoreSpeed: integer("score_speed").default(0),
-    scoreOverall: integer("score_overall").default(0),
+    scoreCoding: integer("score_coding"),
+    scoreReasoning: integer("score_reasoning"),
+    scoreChinese: integer("score_chinese"),
+    scoreCreative: integer("score_creative"),
+    scoreSpeed: integer("score_speed"),
+    scoreOverall: integer("score_overall"),
 
     // 多模态 (0/1)
     hasVision: integer("has_vision").default(0),
@@ -250,6 +250,10 @@ export const modelScores = sqliteTable(
     orRank: integer("or_rank"), // 本周排名
     orWeeklyVolume: text("or_weekly_volume"), // "4.88T tokens"
     orWeeklyChange: text("or_weekly_change"), // "+32%"
+
+    // 数据来源 URL
+    sourcePricing: text("source_pricing"), // 官方定价页 URL
+    sourceBenchmark: text("source_benchmark"), // 评测数据来源 URL
 
     // 运营
     isActive: integer("is_active").default(1),

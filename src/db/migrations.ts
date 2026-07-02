@@ -159,10 +159,6 @@ export async function runMigrations(): Promise<void> {
   `);
 
   // ─── Model Scorecard ──────────────────────────────────────────────
-
-  // Drop old table for migration: tier→type
-  db.run(sql`DROP TABLE IF EXISTS model_scores`);
-
   db.run(sql`
     CREATE TABLE IF NOT EXISTS model_scores (
       id TEXT PRIMARY KEY,
@@ -175,12 +171,12 @@ export async function runMigrations(): Promise<void> {
       peak_multiplier REAL,
       peak_hours TEXT,
       token_plan TEXT,
-      score_coding INTEGER DEFAULT 0,
-      score_reasoning INTEGER DEFAULT 0,
-      score_chinese INTEGER DEFAULT 0,
-      score_creative INTEGER DEFAULT 0,
-      score_speed INTEGER DEFAULT 0,
-      score_overall INTEGER DEFAULT 0,
+      score_coding INTEGER,
+      score_reasoning INTEGER,
+      score_chinese INTEGER,
+      score_creative INTEGER,
+      score_speed INTEGER,
+      score_overall INTEGER,
       has_vision INTEGER DEFAULT 0,
       has_video INTEGER DEFAULT 0,
       has_audio INTEGER DEFAULT 0,
@@ -191,6 +187,8 @@ export async function runMigrations(): Promise<void> {
       or_rank INTEGER,
       or_weekly_volume TEXT,
       or_weekly_change TEXT,
+      source_pricing TEXT,
+      source_benchmark TEXT,
       is_active INTEGER DEFAULT 1,
       priority INTEGER DEFAULT 0,
       release_date TEXT,

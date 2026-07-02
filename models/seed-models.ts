@@ -27,6 +27,8 @@ interface SeedModel {
   releaseDate: string;
   notes: string | null;
   verified: boolean;
+  sourcePricing?: string | null;
+  sourceBenchmark?: string | null;
 }
 
 async function main() {
@@ -50,6 +52,7 @@ async function main() {
       contextWindow: m.specs.contextWindow, maxOutput: m.specs.maxOutput,
       supportsTools: m.specs.supportsTools ? 1 : 0, supportsJson: m.specs.supportsJson ? 1 : 0,
       isActive: m.isActive ? 1 : 0, releaseDate: m.releaseDate, notes: m.notes, verified: m.verified ? 1 : 0,
+      sourcePricing: m.sourcePricing ?? null, sourceBenchmark: m.sourceBenchmark ?? null,
       createdAt: now, updatedAt: now,
     };
 
