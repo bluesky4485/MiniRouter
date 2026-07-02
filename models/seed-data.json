@@ -10,8 +10,8 @@
       "cacheHit": 0.02
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 91.6,
+      "reasoning": 88.1,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -30,7 +30,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-05",
-    "notes": "1M上下文,384K输出。2026-07-24旧deepseek-chat废弃。USD:$0.14/$0.28。",
+    "notes": "1M上下文,384K输出。LiveCodeBench 91.6,GPQA 88.1。",
     "verified": true
   },
   {
@@ -44,8 +44,8 @@
       "cacheHit": 0.026
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 93.5,
+      "reasoning": 90.1,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -64,7 +64,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-05",
-    "notes": "支持thinking mode。USD:$0.435/$0.87。",
+    "notes": "支持thinking mode。LiveCodeBench 93.5(全球#1),GPQA 90.1,SWE-bench 80.6。",
     "verified": true
   },
   {
@@ -112,8 +112,8 @@
       "cacheHit": 2
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 95,
+      "reasoning": 90,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -132,7 +132,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-06-17",
-    "notes": "旗舰。1M上下文。缓存限免。官网¥8/28/2。",
+    "notes": "旗舰。1M上下文。Code Arena全球#1(1595)。SWE-bench Pro62.1,GPQA~90。",
     "verified": true
   },
   {
@@ -146,8 +146,6 @@
       "cacheHit": 1.3
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -180,8 +178,6 @@
       "cacheHit": 1.2
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -214,8 +210,6 @@
       "cacheHit": 1
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -248,8 +242,6 @@
       "cacheHit": 0.4
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -282,8 +274,6 @@
       "cacheHit": 0.1
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -316,8 +306,6 @@
       "cacheHit": 0
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -350,8 +338,6 @@
       "cacheHit": 2.5
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -384,8 +370,6 @@
       "cacheHit": 0.25
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -418,8 +402,6 @@
       "cacheHit": 0.5
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -452,8 +434,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -486,8 +466,6 @@
       "cacheHit": 0.05
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -520,8 +498,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -554,8 +530,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -588,8 +562,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -622,8 +594,8 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 91.6,
+      "reasoning": 92.4,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -642,7 +614,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-07",
-    "notes": "最新旗舰。≤1M统一价¥12/36。支持思考+非思考。Batch半价。",
+    "notes": "最新旗舰。AA综合56.6分全球#5国产#1。LiveCodeBench91.6,GPQA92.4,SWE-bench80.4。",
     "verified": true
   },
   {
@@ -676,7 +648,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-07",
-    "notes": "中端。≤256K¥2/8,>256K跳涨到¥6/24。思考模式输出同价。",
+    "notes": "中端。≤256K¥2/8,>256K跳涨。",
     "verified": true
   },
   {
@@ -710,7 +682,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-01",
-    "notes": "阶梯:≤32K¥2.5/10,32-128K¥4/16,>128K¥7/28。Batch半价。",
+    "notes": "阶梯≤32K¥2.5/10。",
     "verified": true
   },
   {
@@ -724,8 +696,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -758,8 +728,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -792,8 +760,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -826,8 +792,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -860,8 +824,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -894,8 +856,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -928,8 +888,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -962,8 +920,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -996,8 +952,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1030,8 +984,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1064,8 +1016,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1098,8 +1048,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1132,8 +1080,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1166,8 +1112,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1200,8 +1144,6 @@
       "cacheHit": 1.2
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1234,8 +1176,6 @@
       "cacheHit": 1.2
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1268,8 +1208,6 @@
       "cacheHit": 0.6
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1302,8 +1240,6 @@
       "cacheHit": 0.64
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1336,8 +1272,6 @@
       "cacheHit": 0.12
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1370,8 +1304,6 @@
       "cacheHit": 0.04
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1404,8 +1336,6 @@
       "cacheHit": 0.64
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1438,8 +1368,6 @@
       "cacheHit": 0.16
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1472,8 +1400,6 @@
       "cacheHit": 0.16
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1506,8 +1432,6 @@
       "cacheHit": 0.24
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1540,8 +1464,6 @@
       "cacheHit": 0.16
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1574,8 +1496,6 @@
       "cacheHit": 0.06
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1608,8 +1528,6 @@
       "cacheHit": 0.03
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1642,8 +1560,6 @@
       "cacheHit": 0.16
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1676,8 +1592,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1710,8 +1624,6 @@
       "cacheHit": 0.16
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1744,8 +1656,6 @@
       "cacheHit": 0.06
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1778,8 +1688,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1812,8 +1720,6 @@
       "cacheHit": 0.02
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1846,8 +1752,8 @@
       "cacheHit": 0.025
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 80.6,
+      "reasoning": 76.2,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1866,7 +1772,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q1",
-    "notes": "全模态旗舰+1M上下文。",
+    "notes": "全模态旗舰+1M上下文。LiveCodeBench80.6,SWE-bench78.9,MMLU86.7,GPQA Diamond76.2。",
     "verified": true
   },
   {
@@ -1880,8 +1786,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1914,8 +1818,8 @@
       "cacheHit": 0.04
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 93,
+      "reasoning": 85,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1934,7 +1838,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-06-30",
-    "notes": "1.6T MoE MIT开源。折扣价¥2/8,缓存¥0.04。原价¥5/20。",
+    "notes": "1.6T MoE MIT开源。SWE-bench Pro59.5(超GPT-5.5),Terminal-Bench70.8。折扣¥2/8。",
     "verified": true
   },
   {
@@ -1948,8 +1852,8 @@
       "cacheHit": 0.42
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 74,
+      "reasoning": 90,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1968,7 +1872,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q1",
-    "notes": "标准≤512K¥2.1/8.4,>512K翻倍。优先服务×1.5。永久五折。",
+    "notes": "标准≤512K¥2.1/8.4。SWE-bench Pro59.0,GPQA Diamond~90,AA综合54.7。",
     "verified": true
   },
   {
@@ -1982,8 +1886,6 @@
       "cacheHit": 0.42
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2016,8 +1918,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2050,8 +1950,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2084,8 +1982,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2118,8 +2014,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2152,8 +2046,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2206,7 +2098,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-06",
-    "notes": "最强Coding。缓存¥1.3。输出¥27极贵。有HS×2价。",
+    "notes": "最强Coding。⚠️所有评测为自研内部基准(KimiCodeBench62.0,ProgramBench53.6),无LiveCodeBench/SWE-bench/AIME等公开数据。",
     "verified": true
   },
   {
@@ -2220,8 +2112,6 @@
       "cacheHit": 2.6
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2254,8 +2144,6 @@
       "cacheHit": 1.1
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2308,7 +2196,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q2",
-    "notes": "多模态推理。缓存¥0.27。",
+    "notes": "多模态推理。196B MoE,400TPS极速。Agent任务成本仅为Claude1/9。无LiveCodeBench/MMLU公开数据。",
     "verified": true
   },
   {
@@ -2322,8 +2210,6 @@
       "cacheHit": 0.14
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2356,8 +2242,6 @@
       "cacheHit": 0.5
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2390,8 +2274,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2424,8 +2306,8 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 81,
+      "reasoning": 85,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2444,7 +2326,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q1",
-    "notes": "百度旗舰。≤32K¥6/24,32-128K¥10/40。需适配器。",
+    "notes": "百度旗舰。MMLU-Pro87.0,GPQA85.0,AIME87.0,LiveCodeBench~81。",
     "verified": true
   },
   {
@@ -2458,8 +2340,6 @@
       "cacheHit": 0.2
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2492,8 +2372,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2526,8 +2404,6 @@
       "cacheHit": 18
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2560,8 +2436,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2594,8 +2468,6 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
