@@ -132,7 +132,109 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-06-17",
-    "notes": "代码对标Claude Opus4.6。1M上下文。火山引擎确认价。",
+    "notes": "旗舰。1M上下文。缓存限免。官网¥8/28/2。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-5.1",
+    "provider": "智谱",
+    "displayName": "GLM-5.1",
+    "type": "domestic",
+    "pricing": {
+      "input": 6,
+      "output": 24,
+      "cacheHit": 1.3
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 128000,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q2",
+    "notes": "≤32K¥6/24,>32K¥8/28。缓存限免。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-5-turbo",
+    "provider": "智谱",
+    "displayName": "GLM-5-Turbo",
+    "type": "domestic",
+    "pricing": {
+      "input": 5,
+      "output": 22,
+      "cacheHit": 1.2
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 128000,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "≤32K¥5/22,>32K¥7/26。缓存限免。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-5",
+    "provider": "智谱",
+    "displayName": "GLM-5",
+    "type": "domestic",
+    "pricing": {
+      "input": 4,
+      "output": 18,
+      "cacheHit": 1
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 128000,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "≤32K¥4/18,>32K¥6/22。缓存限免。",
     "verified": true
   },
   {
@@ -166,86 +268,18 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q1",
-    "notes": "火山引擎确认价。输出≤200t时¥8,>200t时¥14分段。",
+    "notes": "分段:≤32K且输出≤200t:¥2/8;输出>200t:¥3/14;32-200K:¥4/16。",
     "verified": true
   },
   {
-    "id": "zhipu/glm-4-flash",
+    "id": "zhipu/glm-4.7-flashx",
     "provider": "智谱",
-    "displayName": "GLM-4-Flash",
+    "displayName": "GLM-4.7-FlashX",
     "type": "domestic",
     "pricing": {
-      "input": 0,
-      "output": 0,
-      "cacheHit": null
-    },
-    "scores": {
-      "coding": null,
-      "reasoning": null,
-      "chinese": null,
-      "creative": null,
-      "speed": null
-    },
-    "multimodal": {
-      "vision": true,
-      "video": false,
-      "audio": false
-    },
-    "specs": {
-      "contextWindow": 131072,
-      "maxOutput": 8192,
-      "supportsTools": false,
-      "supportsJson": false
-    },
-    "isActive": true,
-    "priority": 0,
-    "releaseDate": "2024-Q4",
-    "notes": "永久免费。零成本兜底。",
-    "verified": true
-  },
-  {
-    "id": "zhipu/glm-4-flashx",
-    "provider": "智谱",
-    "displayName": "GLM-4-FlashX",
-    "type": "domestic",
-    "pricing": {
-      "input": 0.1,
-      "output": 0.1,
-      "cacheHit": null
-    },
-    "scores": {
-      "coding": null,
-      "reasoning": null,
-      "chinese": null,
-      "creative": null,
-      "speed": null
-    },
-    "multimodal": {
-      "vision": true,
-      "video": false,
-      "audio": false
-    },
-    "specs": {
-      "contextWindow": 131072,
-      "maxOutput": 8192,
-      "supportsTools": true,
-      "supportsJson": false
-    },
-    "isActive": true,
-    "priority": 0,
-    "releaseDate": "2025-H1",
-    "notes": "几乎免费。有Function Calling。",
-    "verified": true
-  },
-  {
-    "id": "zhipu/glm-4-air",
-    "provider": "智谱",
-    "displayName": "GLM-4-Air",
-    "type": "domestic",
-    "pricing": {
-      "input": 0.6,
-      "output": 0.6,
-      "cacheHit": null
+      "input": 0.5,
+      "output": 3,
+      "cacheHit": 0.1
     },
     "scores": {
       "coding": null,
@@ -260,15 +294,49 @@
       "audio": false
     },
     "specs": {
-      "contextWindow": 131072,
+      "contextWindow": 200000,
       "maxOutput": 8192,
       "supportsTools": true,
-      "supportsJson": true
+      "supportsJson": false
     },
     "isActive": true,
     "priority": 0,
-    "releaseDate": "2025-H1",
-    "notes": "¥0.6同价。",
+    "releaseDate": "2026-Q1",
+    "notes": "高速低价。200K上下文¥0.5/3。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-4.7-flash",
+    "provider": "智谱",
+    "displayName": "GLM-4.7-Flash",
+    "type": "domestic",
+    "pricing": {
+      "input": 0,
+      "output": 0,
+      "cacheHit": 0
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 200000,
+      "maxOutput": 4096,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "免费！200K上下文。",
     "verified": true
   },
   {
@@ -279,7 +347,7 @@
     "pricing": {
       "input": 5,
       "output": 5,
-      "cacheHit": null
+      "cacheHit": 2.5
     },
     "scores": {
       "coding": null,
@@ -302,7 +370,245 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2025-Q3",
-    "notes": "输入输出同价。",
+    "notes": "高智能旗舰。输入输出同价¥5。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-4-air",
+    "provider": "智谱",
+    "displayName": "GLM-4-Air",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.5,
+      "output": 0.5,
+      "cacheHit": 0.25
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "高性价比。¥0.5同价。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-4-long",
+    "provider": "智谱",
+    "displayName": "GLM-4-Long",
+    "type": "domestic",
+    "pricing": {
+      "input": 1,
+      "output": 1,
+      "cacheHit": 0.5
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "1M上下文。¥1/1。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-4-flash",
+    "provider": "智谱",
+    "displayName": "GLM-4-Flash",
+    "type": "domestic",
+    "pricing": {
+      "input": 0,
+      "output": 0,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2024-Q4",
+    "notes": "免费！128K上下文。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-4-flashx",
+    "provider": "智谱",
+    "displayName": "GLM-4-FlashX",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.1,
+      "output": 0.1,
+      "cacheHit": 0.05
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-H1",
+    "notes": "高速低价。¥0.1同价。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-z1-air",
+    "provider": "智谱",
+    "displayName": "GLM-Z1-Air",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.5,
+      "output": 0.5,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "推理模型。¥0.5输入(仅推理,无输出价)。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-z1-flash",
+    "provider": "智谱",
+    "displayName": "GLM-Z1-Flash",
+    "type": "domestic",
+    "pricing": {
+      "input": 0,
+      "output": 0,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "免费推理模型。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-z1-flashx",
+    "provider": "智谱",
+    "displayName": "GLM-Z1-FlashX",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.1,
+      "output": 0.1,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "高速低价推理。",
     "verified": true
   },
   {
