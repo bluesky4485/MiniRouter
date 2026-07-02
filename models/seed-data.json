@@ -311,8 +311,8 @@
     "displayName": "Qwen3.7-Max",
     "type": "domestic",
     "pricing": {
-      "input": 2.5,
-      "output": 10,
+      "input": 12,
+      "output": 36,
       "cacheHit": null
     },
     "scores": {
@@ -323,20 +323,20 @@
       "speed": null
     },
     "multimodal": {
-      "vision": true,
-      "video": true,
-      "audio": false
+      "vision": false,
+      "video": false,
+      "audio": true
     },
     "specs": {
-      "contextWindow": 262144,
-      "maxOutput": 16384,
+      "contextWindow": 1048576,
+      "maxOutput": 131072,
       "supportsTools": true,
       "supportsJson": true
     },
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-07",
-    "notes": "最新旗舰。待确认官方定价-使用3.6-Max价格占位。",
+    "notes": "最新旗舰。≤1M统一价¥12/36。支持思考+非思考。Batch半价。",
     "verified": true
   },
   {
@@ -345,76 +345,8 @@
     "displayName": "Qwen3.7-Plus",
     "type": "domestic",
     "pricing": {
-      "input": 1.5,
-      "output": 6,
-      "cacheHit": null
-    },
-    "scores": {
-      "coding": null,
-      "reasoning": null,
-      "chinese": null,
-      "creative": null,
-      "speed": null
-    },
-    "multimodal": {
-      "vision": true,
-      "video": true,
-      "audio": false
-    },
-    "specs": {
-      "contextWindow": 1048576,
-      "maxOutput": 16384,
-      "supportsTools": true,
-      "supportsJson": true
-    },
-    "isActive": true,
-    "priority": 0,
-    "releaseDate": "2026-07",
-    "notes": "最新中端。估算价格。",
-    "verified": true
-  },
-  {
-    "id": "alibaba/qwen3.6-max",
-    "provider": "阿里",
-    "displayName": "Qwen3.6-Max",
-    "type": "domestic",
-    "pricing": {
-      "input": 2.5,
-      "output": 10,
-      "cacheHit": null
-    },
-    "scores": {
-      "coding": null,
-      "reasoning": null,
-      "chinese": null,
-      "creative": null,
-      "speed": null
-    },
-    "multimodal": {
-      "vision": true,
-      "video": true,
-      "audio": false
-    },
-    "specs": {
-      "contextWindow": 262144,
-      "maxOutput": 16384,
-      "supportsTools": true,
-      "supportsJson": true
-    },
-    "isActive": true,
-    "priority": 0,
-    "releaseDate": "2026-Q2",
-    "notes": "中文评测领先。>128K跳涨到¥7/28。阶梯定价。",
-    "verified": true
-  },
-  {
-    "id": "alibaba/qwen3.6-flash",
-    "provider": "阿里",
-    "displayName": "Qwen3.6-Flash",
-    "type": "domestic",
-    "pricing": {
-      "input": 0.37,
-      "output": 2.94,
+      "input": 2,
+      "output": 8,
       "cacheHit": null
     },
     "scores": {
@@ -430,15 +362,49 @@
       "audio": false
     },
     "specs": {
-      "contextWindow": 131072,
-      "maxOutput": 8192,
+      "contextWindow": 1048576,
+      "maxOutput": 131072,
       "supportsTools": true,
       "supportsJson": true
     },
     "isActive": true,
     "priority": 0,
-    "releaseDate": "2026-Q1",
-    "notes": "轻量版。有Tool Calling。",
+    "releaseDate": "2026-07",
+    "notes": "中端。≤256K¥2/8,>256K跳涨到¥6/24。思考模式输出同价。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3-max",
+    "provider": "阿里",
+    "displayName": "Qwen3-Max",
+    "type": "domestic",
+    "pricing": {
+      "input": 2.5,
+      "output": 10,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 262144,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-01",
+    "notes": "阶梯:≤32K¥2.5/10,32-128K¥4/16,>128K¥7/28。Batch半价。",
     "verified": true
   },
   {
@@ -472,17 +438,17 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q1",
-    "notes": "1M上下文¥0.8输入。阶梯定价。",
+    "notes": "阶梯:≤128K¥0.8/4.8,128-256K¥2/12,>256K¥4/24。Batch半价。",
     "verified": true
   },
   {
-    "id": "alibaba/qwen3.5-omni-plus",
+    "id": "alibaba/qwen3.6-flash",
     "provider": "阿里",
-    "displayName": "Qwen3.5-Omni-Plus",
+    "displayName": "Qwen3.6-Flash",
     "type": "domestic",
     "pricing": {
-      "input": 1.5,
-      "output": 6,
+      "input": 1.2,
+      "output": 7.2,
       "cacheHit": null
     },
     "scores": {
@@ -493,20 +459,54 @@
       "speed": null
     },
     "multimodal": {
-      "vision": true,
-      "video": true,
-      "audio": true
+      "vision": false,
+      "video": false,
+      "audio": false
     },
     "specs": {
-      "contextWindow": 131072,
-      "maxOutput": 8192,
+      "contextWindow": 1048576,
+      "maxOutput": 16384,
       "supportsTools": true,
       "supportsJson": true
     },
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q1",
-    "notes": "全模态(视觉+视频+音频+语音)。",
+    "notes": "阶梯:≤256K¥1.2/7.2,>256K¥4.8/28.8。Batch半价。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3.5-flash",
+    "provider": "阿里",
+    "displayName": "Qwen3.5-Flash",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.2,
+      "output": 2,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "阶梯:≤128K¥0.2/2,128-256K¥0.8/8,>256K¥1.2/12。极便宜。",
     "verified": true
   },
   {
@@ -540,17 +540,221 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2025",
-    "notes": "经典便宜老将。¥0.3/0.6。",
+    "notes": "经典便宜老将。非思考¥0.3/0.6,思考模式¥0.3/3。",
     "verified": true
   },
   {
-    "id": "alibaba/qwen3-max",
+    "id": "alibaba/qwq-plus",
     "provider": "阿里",
-    "displayName": "Qwen3-Max",
-    "type": "deprecated",
+    "displayName": "QwQ-Plus",
+    "type": "domestic",
     "pricing": {
-      "input": 5.6,
-      "output": 28,
+      "input": 1.6,
+      "output": 4,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026",
+    "notes": "推理专用。仅思考模式。¥1.6/4。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen-long",
+    "provider": "阿里",
+    "displayName": "Qwen-Long",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.5,
+      "output": 2,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 10485760,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "长文档专用(10M上下文)。¥0.5/2。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen-vl-max",
+    "provider": "阿里",
+    "displayName": "Qwen-VL-Max",
+    "type": "domestic",
+    "pricing": {
+      "input": 1.6,
+      "output": 4,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 32768,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "视觉旗舰。无阶梯。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen-vl-plus",
+    "provider": "阿里",
+    "displayName": "Qwen-VL-Plus",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.8,
+      "output": 2,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 32768,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "视觉中端。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen-coder-plus",
+    "provider": "阿里",
+    "displayName": "Qwen-Coder-Plus",
+    "type": "domestic",
+    "pricing": {
+      "input": 3.5,
+      "output": 7,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "代码通用。无阶梯。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen-mt-plus",
+    "provider": "阿里",
+    "displayName": "Qwen-MT-Plus",
+    "type": "domestic",
+    "pricing": {
+      "input": 1.8,
+      "output": 5.4,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 32768,
+      "maxOutput": 4096,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "翻译专用。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3-vl-plus",
+    "provider": "阿里",
+    "displayName": "Qwen3-VL-Plus",
+    "type": "domestic",
+    "pricing": {
+      "input": 1,
+      "output": 10,
       "cacheHit": null
     },
     "scores": {
@@ -571,10 +775,112 @@
       "supportsTools": true,
       "supportsJson": true
     },
-    "isActive": false,
+    "isActive": true,
     "priority": 0,
-    "releaseDate": "2025-Q3",
-    "notes": "被3.6-Max替代。",
+    "releaseDate": "2026",
+    "notes": "视觉最新。阶梯:≤32K¥1/10,32-128K¥1.5/15。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3-vl-flash",
+    "provider": "阿里",
+    "displayName": "Qwen3-VL-Flash",
+    "type": "domestic",
+    "pricing": {
+      "input": 0.15,
+      "output": 1.5,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 262144,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026",
+    "notes": "视觉轻量。阶梯:≤32K¥0.15/1.5。极便宜视觉。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3-coder-plus",
+    "provider": "阿里",
+    "displayName": "Qwen3-Coder-Plus",
+    "type": "domestic",
+    "pricing": {
+      "input": 4,
+      "output": 16,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 32768,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026",
+    "notes": "最新代码旗舰。阶梯:≤32K¥4/16,32-128K¥6/24。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3.5-omni-plus",
+    "provider": "阿里",
+    "displayName": "Qwen3.5-Omni-Plus",
+    "type": "domestic",
+    "pricing": {
+      "input": 7,
+      "output": 40,
+      "cacheHit": null
+    },
+    "scores": {
+      "coding": null,
+      "reasoning": null,
+      "chinese": null,
+      "creative": null,
+      "speed": null
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": true
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "全模态(文本¥7/40+音频¥53/213)。",
     "verified": true
   },
   {
