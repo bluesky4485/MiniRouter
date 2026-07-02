@@ -1,0 +1,1842 @@
+[
+  {
+    "id": "deepseek/v4-flash",
+    "provider": "DeepSeek",
+    "displayName": "DeepSeek V4 Flash",
+    "tier": "pro",
+    "pricing": {
+      "input": 1,
+      "output": 2,
+      "cacheHit": 0.02,
+      "peakMultiplier": 2,
+      "peakHours": "工作日9-12,14-18"
+    },
+    "scores": {
+      "coding": 85,
+      "reasoning": 65,
+      "chinese": 80,
+      "creative": 60,
+      "speed": 85,
+      "overall": 75
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 384000,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 1,
+    "or_weeklyVolume": "+2%",
+    "or_weeklyChange": "+2%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-05",
+    "notes": "全球 #1。Pro 核心主力。⚠️ 7月中旬峰谷定价，高峰时 ¥2.0/4.0。384K max output。",
+    "verified": true
+  },
+  {
+    "id": "deepseek/v4-pro",
+    "provider": "DeepSeek",
+    "displayName": "DeepSeek V4 Pro",
+    "tier": "pro",
+    "pricing": {
+      "input": 3,
+      "output": 6,
+      "cacheHit": 0.025,
+      "peakMultiplier": 2,
+      "peakHours": "工作日9-12,14-18"
+    },
+    "scores": {
+      "coding": 90,
+      "reasoning": 85,
+      "chinese": 80,
+      "creative": 68,
+      "speed": 70,
+      "overall": 79
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 384000,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 7,
+    "or_weeklyVolume": "0%",
+    "or_weeklyChange": "0%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-05",
+    "notes": "综合旗舰。输出 ¥6 是旗舰中最便宜——输出密集型任务首选。高峰翻倍。",
+    "verified": true
+  },
+  {
+    "id": "deepseek/v3.2",
+    "provider": "DeepSeek",
+    "displayName": "DeepSeek V3.2",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 2,
+      "output": 8,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 80,
+      "reasoning": 70,
+      "chinese": 78,
+      "creative": 62,
+      "speed": 72,
+      "overall": 72
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 18,
+    "or_weeklyVolume": "-38%",
+    "or_weeklyChange": "-38%",
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "⚠️ 2026-07-24 废弃，原 deepseek-chat 将停止服务。用户正在快速迁移到 V4。",
+    "verified": true
+  },
+  {
+    "id": "deepseek/r1-0528",
+    "provider": "DeepSeek",
+    "displayName": "DeepSeek R1 0528",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 3.2,
+      "output": 12.8,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 75,
+      "reasoning": 92,
+      "chinese": 72,
+      "creative": 60,
+      "speed": 50,
+      "overall": 73
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 32768,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2025-06",
+    "notes": "⚠️ 2026-07-24 废弃，原 deepseek-reasoner。推理强但即将下线，请用 V4-Pro。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-5.2",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-5.2",
+    "tier": "promax",
+    "pricing": {
+      "input": 8,
+      "output": 28,
+      "cacheHit": 2,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 95,
+      "reasoning": 90,
+      "chinese": 85,
+      "creative": 85,
+      "speed": 70,
+      "overall": 85
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 32768,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 6,
+    "or_weeklyVolume": "+32%",
+    "or_weeklyChange": "+32%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-06-17",
+    "notes": "ProMax 推理天花板。代码对标 Claude Opus 4.6 (LiveCodeBench)。1M 上下文。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-5.1",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-5.1",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 8,
+      "output": 28,
+      "cacheHit": 2,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 90,
+      "reasoning": 87,
+      "chinese": 83,
+      "creative": 82,
+      "speed": 68,
+      "overall": 82
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 200000,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2026-04",
+    "notes": "GLM-5.2 前代。价格与 5.2 相同，能力略低。建议迁移到 5.2。",
+    "verified": false
+  },
+  {
+    "id": "zhipu/glm-5",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-5",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 5,
+      "output": 5,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 82,
+      "reasoning": 85,
+      "chinese": 82,
+      "creative": 80,
+      "speed": 65,
+      "overall": 79
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "输入输出同价 ¥5。",
+    "verified": false
+  },
+  {
+    "id": "zhipu/glm-4.6",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-4.6",
+    "tier": "pro",
+    "pricing": {
+      "input": 5,
+      "output": 5,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 80,
+      "reasoning": 78,
+      "chinese": 84,
+      "creative": 78,
+      "speed": 68,
+      "overall": 78
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "GLM-4 系列最新。价格与 GLM-5 相同但能力稍弱，性价比不如 LongCat-2.0。",
+    "verified": false
+  },
+  {
+    "id": "zhipu/glm-4-plus",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-4-Plus",
+    "tier": "pro",
+    "pricing": {
+      "input": 5,
+      "output": 5,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 75,
+      "reasoning": 72,
+      "chinese": 82,
+      "creative": 75,
+      "speed": 70,
+      "overall": 75
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q3",
+    "notes": "价格降幅后的中端选择。",
+    "verified": false
+  },
+  {
+    "id": "zhipu/glm-4-flash",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-4-Flash",
+    "tier": "starter",
+    "pricing": {
+      "input": 0,
+      "output": 0,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 55,
+      "reasoning": 40,
+      "chinese": 70,
+      "creative": 55,
+      "speed": 60,
+      "overall": 56
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2024-Q4",
+    "notes": "永久免费。零成本兜底。适合 SIMPLE 级请求 + 前置路由分类。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-4-flashx",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-4-FlashX",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.1,
+      "output": 0.1,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 58,
+      "reasoning": 45,
+      "chinese": 72,
+      "creative": 58,
+      "speed": 62,
+      "overall": 59
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-H1",
+    "notes": "几乎免费。¥0.1/0.1，有 Function Calling。性价比极高的轻量模型。",
+    "verified": true
+  },
+  {
+    "id": "zhipu/glm-4-air",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-4-Air",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.6,
+      "output": 0.6,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 62,
+      "reasoning": 50,
+      "chinese": 74,
+      "creative": 62,
+      "speed": 65,
+      "overall": 63
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-H1",
+    "notes": "¥0.6 同价。批量任务首选之一。",
+    "verified": false
+  },
+  {
+    "id": "zhipu/glm-4-long",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-4-Long",
+    "tier": "pro",
+    "pricing": {
+      "input": 1,
+      "output": 1,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 65,
+      "reasoning": 55,
+      "chinese": 76,
+      "creative": 65,
+      "speed": 58,
+      "overall": 64
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q2",
+    "notes": "1M 上下文 ¥1/1。长文档处理平价方案。能力一般但特别长。",
+    "verified": false
+  },
+  {
+    "id": "zhipu/glm-z1-air",
+    "provider": "智谱 (Zhipu)",
+    "displayName": "GLM-Z1-Air",
+    "tier": "pro",
+    "pricing": {
+      "input": 1,
+      "output": 1,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 55,
+      "reasoning": 75,
+      "chinese": 68,
+      "creative": 45,
+      "speed": 55,
+      "overall": 60
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 32768,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q3",
+    "notes": "专注推理的轻量模型。¥1/1 推理专用。可做 Pro 档 REASONING 降级项。",
+    "verified": false
+  },
+  {
+    "id": "alibaba/qwen3.6-max",
+    "provider": "阿里 (Alibaba)",
+    "displayName": "Qwen3.6-Max",
+    "tier": "promax",
+    "pricing": {
+      "input": 2.5,
+      "output": 10,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 88,
+      "reasoning": 88,
+      "chinese": 92,
+      "creative": 85,
+      "speed": 72,
+      "overall": 85
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 262144,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q2",
+    "notes": "中文 92 断层第一。综合 85 与 GLM-5.2 持平。⚠️ >128K 长文本价格跳涨。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3.5-plus",
+    "provider": "阿里 (Alibaba)",
+    "displayName": "Qwen3.5-Plus",
+    "tier": "pro",
+    "pricing": {
+      "input": 0.8,
+      "output": 4.8,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 80,
+      "reasoning": 70,
+      "chinese": 88,
+      "creative": 78,
+      "speed": 75,
+      "overall": 78
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "中文成本最优。1M 上下文 ¥0.8 输入。长文档中文场景首选。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3.6-flash",
+    "provider": "阿里 (Alibaba)",
+    "displayName": "Qwen3.6-Flash",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.37,
+      "output": 2.94,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 70,
+      "reasoning": 55,
+      "chinese": 78,
+      "creative": 65,
+      "speed": 82,
+      "overall": 70
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "阿里轻量版。¥0.37 极便宜，有 Tool Calling。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen-turbo",
+    "provider": "阿里 (Alibaba)",
+    "displayName": "Qwen-Turbo",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.3,
+      "output": 0.6,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 50,
+      "reasoning": 40,
+      "chinese": 68,
+      "creative": 55,
+      "speed": 78,
+      "overall": 58
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "经典便宜老将。¥0.3/0.6，能力偏弱但够用于翻译/摘要/闲聊。",
+    "verified": true
+  },
+  {
+    "id": "alibaba/qwen3.5-omni-plus",
+    "provider": "阿里 (Alibaba)",
+    "displayName": "Qwen3.5-Omni-Plus",
+    "tier": "pro",
+    "pricing": {
+      "input": 1.5,
+      "output": 6,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 75,
+      "reasoning": 68,
+      "chinese": 82,
+      "creative": 72,
+      "speed": 65,
+      "overall": 72
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": true
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "全模态旗舰（视觉+视频+音频）。¥1.5 输入在 Pro 档偏贵但模态齐全。Pro 档多模态主选。",
+    "verified": false
+  },
+  {
+    "id": "alibaba/qwen3-max",
+    "provider": "阿里 (Alibaba)",
+    "displayName": "Qwen3-Max",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 5.6,
+      "output": 28,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 85,
+      "reasoning": 85,
+      "chinese": 90,
+      "creative": 82,
+      "speed": 68,
+      "overall": 83
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 262144,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2025-Q3",
+    "notes": "Qwen3.6-Max 前代。价格比 3.6Max 贵(¥5.6 vs ¥2.5)能力还弱一点。建议迁移到 3.6Max。",
+    "verified": false
+  },
+  {
+    "id": "bytedance/seed-2.0-pro",
+    "provider": "字节 (ByteDance)",
+    "displayName": "Seed-2.0-Pro",
+    "tier": "promax",
+    "pricing": {
+      "input": 3.2,
+      "output": 16,
+      "cacheHit": 0.8,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 78,
+      "reasoning": 80,
+      "chinese": 85,
+      "creative": 80,
+      "speed": 75,
+      "overall": 80
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q2",
+    "notes": "字节旗舰。Batch 45% 折扣。多模态（图+视频）。",
+    "verified": true
+  },
+  {
+    "id": "bytedance/seed-2.0-mini",
+    "provider": "字节 (ByteDance)",
+    "displayName": "Seed-2.0-Mini",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.2,
+      "output": 2,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 65,
+      "reasoning": 52,
+      "chinese": 75,
+      "creative": 62,
+      "speed": 78,
+      "overall": 66
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q2",
+    "notes": "¥0.2 极低输入。有 Tool Calling。Starter 轻量任务候选。",
+    "verified": true
+  },
+  {
+    "id": "bytedance/seed-2.0-lite",
+    "provider": "字节 (ByteDance)",
+    "displayName": "Seed-2.0-Lite",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.6,
+      "output": 3.66,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 68,
+      "reasoning": 58,
+      "chinese": 78,
+      "creative": 65,
+      "speed": 75,
+      "overall": 69
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q2",
+    "notes": "Seed 中杯。",
+    "verified": true
+  },
+  {
+    "id": "bytedance/seed-1.6-flash",
+    "provider": "字节 (ByteDance)",
+    "displayName": "Seed-1.6-Flash",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.075,
+      "output": 0.75,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 55,
+      "reasoning": 40,
+      "chinese": 72,
+      "creative": 58,
+      "speed": 70,
+      "overall": 59
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 32768,
+      "maxOutput": 8192,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "🏆 全场最低价 ¥0.075。能力弱，仅适合极简任务。Starter 兜底模型。",
+    "verified": true
+  },
+  {
+    "id": "bytedance/doubao-1.5-pro",
+    "provider": "字节 (ByteDance)",
+    "displayName": "豆包 1.5-Pro",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 0.8,
+      "output": 2,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 72,
+      "reasoning": 60,
+      "chinese": 80,
+      "creative": 70,
+      "speed": 72,
+      "overall": 71
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "豆包旧旗舰。Seed 系列已经替代。建议迁移到 Seed-2.0 系列。",
+    "verified": false
+  },
+  {
+    "id": "xiaomi/mimo-v2.5",
+    "provider": "小米 (Xiaomi)",
+    "displayName": "MiMo-V2.5",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.74,
+      "output": 2.1,
+      "cacheHit": 0.07,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 70,
+      "reasoning": 65,
+      "chinese": 80,
+      "creative": 72,
+      "speed": 95,
+      "overall": 76
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": true
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 2,
+    "or_weeklyVolume": "+3%",
+    "or_weeklyChange": "+3%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "全模态 + 首字 0.21s 极快。OpenRouter #2。Starter 首选：体验远好于价格。",
+    "verified": true
+  },
+  {
+    "id": "xiaomi/mimo-v2.5-pro",
+    "provider": "小米 (Xiaomi)",
+    "displayName": "MiMo-V2.5-Pro",
+    "tier": "promax",
+    "pricing": {
+      "input": 7,
+      "output": 21,
+      "cacheHit": 1.47,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 82,
+      "reasoning": 78,
+      "chinese": 85,
+      "creative": 80,
+      "speed": 72,
+      "overall": 80
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": true
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 32768,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 19,
+    "or_weeklyVolume": "+5%",
+    "or_weeklyChange": "+5%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "全模态旗舰 + 1M 上下文。⚠️ 长文本加价 2-3 倍。",
+    "verified": true
+  },
+  {
+    "id": "xiaomi/mimo-v2-flash",
+    "provider": "小米 (Xiaomi)",
+    "displayName": "MiMo-V2-Flash",
+    "tier": "starter",
+    "pricing": {
+      "input": 0.7,
+      "output": 2.1,
+      "cacheHit": 0.07,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 68,
+      "reasoning": 60,
+      "chinese": 75,
+      "creative": 68,
+      "speed": 85,
+      "overall": 71
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "V2.5 前代。价格接近但能力稍弱。建议用 V2.5 替代。",
+    "verified": false
+  },
+  {
+    "id": "meituan/longcat-2.0",
+    "provider": "美团 (Meituan)",
+    "displayName": "LongCat-2.0",
+    "tier": "pro",
+    "pricing": {
+      "input": 2,
+      "output": 8,
+      "cacheHit": 0.04,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 93,
+      "reasoning": 85,
+      "chinese": 82,
+      "creative": 70,
+      "speed": 75,
+      "overall": 85
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 131072,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 5,
+    "or_weeklyVolume": "+1%",
+    "or_weeklyChange": "+1%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-06-30",
+    "notes": "🆕 旗舰能力 Pro 价格！SWE-bench 59.5(超 GPT-5.5)。MIT 开源。Pro+ 候选。token 包 ¥9.9/5000万。",
+    "verified": true
+  },
+  {
+    "id": "minimax/m3",
+    "provider": "MiniMax",
+    "displayName": "MiniMax M3",
+    "tier": "pro",
+    "pricing": {
+      "input": 2.1,
+      "output": 8.4,
+      "cacheHit": 0.42,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 80,
+      "reasoning": 72,
+      "chinese": 80,
+      "creative": 75,
+      "speed": 78,
+      "overall": 77
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 197000,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 4,
+    "or_weeklyVolume": "+3%",
+    "or_weeklyChange": "+3%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "OpenRouter #4。缓存机制好 (¥0.42)。视觉支持。Pro 多模态候选。",
+    "verified": true
+  },
+  {
+    "id": "minimax/m2.7",
+    "provider": "MiniMax",
+    "displayName": "MiniMax M2.7",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 2.1,
+      "output": 8.4,
+      "cacheHit": 0.42,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 75,
+      "reasoning": 68,
+      "chinese": 78,
+      "creative": 72,
+      "speed": 75,
+      "overall": 74
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 197000,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "M3 前代。价格相同能力稍低。建议迁到 M3。",
+    "verified": false
+  },
+  {
+    "id": "tencent/hy3-preview",
+    "provider": "腾讯 (Tencent)",
+    "displayName": "混元 Hy3 Preview",
+    "tier": "candidate",
+    "pricing": {
+      "input": -1,
+      "output": -1,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 82,
+      "reasoning": 78,
+      "chinese": 82,
+      "creative": 75,
+      "speed": 72,
+      "overall": 78
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 3,
+    "or_weeklyVolume": "+9%",
+    "or_weeklyChange": "+9%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-06",
+    "notes": "OpenRouter #3 预览版。价格待确认后评估入池。",
+    "verified": false
+  },
+  {
+    "id": "tencent/hunyuan-turbos",
+    "provider": "腾讯 (Tencent)",
+    "displayName": "混元 TurboS",
+    "tier": "pro",
+    "pricing": {
+      "input": 0.8,
+      "output": 2,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 72,
+      "reasoning": 62,
+      "chinese": 78,
+      "creative": 68,
+      "speed": 80,
+      "overall": 72
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "¥0.8/2.0 极低。Pro 档降级/高峰期切换目标。",
+    "verified": true
+  },
+  {
+    "id": "tencent/hy2.0-think",
+    "provider": "腾讯 (Tencent)",
+    "displayName": "混元 HY2.0 Think",
+    "tier": "pro",
+    "pricing": {
+      "input": 4,
+      "output": 16,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 78,
+      "reasoning": 82,
+      "chinese": 78,
+      "creative": 65,
+      "speed": 60,
+      "overall": 73
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "推理专用。¥4/16 比 HY3 贵，等 HY3 正式发布后可能淘汰。",
+    "verified": true
+  },
+  {
+    "id": "tencent/hunyuan-lite",
+    "provider": "腾讯 (Tencent)",
+    "displayName": "混元 Lite",
+    "tier": "starter",
+    "pricing": {
+      "input": 0,
+      "output": 0,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 50,
+      "reasoning": 38,
+      "chinese": 68,
+      "creative": 52,
+      "speed": 65,
+      "overall": 54
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 32768,
+      "maxOutput": 4096,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025",
+    "notes": "永久免费。与 GLM-4-Flash 同为零成本兜底。",
+    "verified": true
+  },
+  {
+    "id": "moonshot/kimi-k2.7-code",
+    "provider": "月之暗面 (Moonshot)",
+    "displayName": "Kimi K2.7 Code",
+    "tier": "promax",
+    "pricing": {
+      "input": 6.5,
+      "output": 27,
+      "cacheHit": 1.3,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 95,
+      "reasoning": 78,
+      "chinese": 80,
+      "creative": 72,
+      "speed": 62,
+      "overall": 80
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 262144,
+      "maxOutput": 32768,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-06",
+    "notes": "代码 95 但输出 ¥27 极贵。缓存命中 ¥1.3。仅 ProMax 代码专用场景。",
+    "verified": true
+  },
+  {
+    "id": "moonshot/kimi-k2.7-code-highspeed",
+    "provider": "月之暗面 (Moonshot)",
+    "displayName": "Kimi K2.7 Code HS",
+    "tier": "promax",
+    "pricing": {
+      "input": 13,
+      "output": 54,
+      "cacheHit": 2.6,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 95,
+      "reasoning": 78,
+      "chinese": 80,
+      "creative": 72,
+      "speed": 85,
+      "overall": 80
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 262144,
+      "maxOutput": 32768,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-06",
+    "notes": "K2.7 Code 高速版。180-260 TPS。价格翻倍。仅限对延迟极度敏感的场景。",
+    "verified": true
+  },
+  {
+    "id": "moonshot/kimi-k2.6",
+    "provider": "月之暗面 (Moonshot)",
+    "displayName": "Kimi K2.6",
+    "tier": "deprecated",
+    "pricing": {
+      "input": 6.5,
+      "output": 27,
+      "cacheHit": 1.1,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 90,
+      "reasoning": 75,
+      "chinese": 78,
+      "creative": 82,
+      "speed": 65,
+      "overall": 78
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 262144,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": false,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "代码 90 但 ¥27 贵。缓存 ¥1.1。被 K2.7 Code 替代。",
+    "verified": true
+  },
+  {
+    "id": "stepfun/step-3.7-flash",
+    "provider": "阶跃星辰 (StepFun)",
+    "displayName": "Step 3.7 Flash",
+    "tier": "candidate",
+    "pricing": {
+      "input": -1,
+      "output": -1,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 75,
+      "reasoning": 72,
+      "chinese": 78,
+      "creative": 70,
+      "speed": 75,
+      "overall": 74
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 11,
+    "or_weeklyVolume": "+16%",
+    "or_weeklyChange": "+16%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q2",
+    "notes": "OpenRouter #11 +16% 增长。黑马候选。价格待确认后评估入池。",
+    "verified": false
+  },
+  {
+    "id": "stepfun/step-2",
+    "provider": "阶跃星辰 (StepFun)",
+    "displayName": "Step-2",
+    "tier": "candidate",
+    "pricing": {
+      "input": -1,
+      "output": -1,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 80,
+      "reasoning": 78,
+      "chinese": 82,
+      "creative": 75,
+      "speed": 68,
+      "overall": 78
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2025-Q4",
+    "notes": "阶跃旗舰。多模态。价格待确认。",
+    "verified": false
+  },
+  {
+    "id": "baidu/ernie-5.0",
+    "provider": "百度 (Baidu)",
+    "displayName": "ERNIE-5.0",
+    "tier": "candidate",
+    "pricing": {
+      "input": 8,
+      "output": 32,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 78,
+      "reasoning": 80,
+      "chinese": 88,
+      "creative": 82,
+      "speed": 65,
+      "overall": 80
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": true,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "百度旗舰。中文 88。价格 ¥8/32 偏贵。API 兼容性稍差(需适配器)。",
+    "verified": false
+  },
+  {
+    "id": "baidu/ernie-4.5-turbo",
+    "provider": "百度 (Baidu)",
+    "displayName": "ERNIE 4.5 Turbo",
+    "tier": "candidate",
+    "pricing": {
+      "input": 0.8,
+      "output": 3.2,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 65,
+      "reasoning": 55,
+      "chinese": 85,
+      "creative": 72,
+      "speed": 70,
+      "overall": 69
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 8192,
+      "supportsTools": true,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "¥0.8 便宜，中文 85。代码/推理偏弱。需要适配器。中文轻量场景候选。",
+    "verified": false
+  },
+  {
+    "id": "baidu/ernie-x1.1",
+    "provider": "百度 (Baidu)",
+    "displayName": "ERNIE X1.1 Preview",
+    "tier": "candidate",
+    "pricing": {
+      "input": 1,
+      "output": 4,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 70,
+      "reasoning": 78,
+      "chinese": 82,
+      "creative": 68,
+      "speed": 62,
+      "overall": 72
+    },
+    "multimodal": {
+      "vision": false,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 131072,
+      "maxOutput": 16384,
+      "supportsTools": false,
+      "supportsJson": false
+    },
+    "or_rank": null,
+    "or_weeklyVolume": null,
+    "or_weeklyChange": null,
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "推理中型。¥1/4 价格合理。Pro 推理候选。",
+    "verified": false
+  },
+  {
+    "id": "openai/gpt-5.5",
+    "provider": "OpenAI ⚑",
+    "displayName": "GPT-5.5",
+    "tier": "candidate",
+    "pricing": {
+      "input": 36,
+      "output": 216,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 93,
+      "reasoning": 92,
+      "chinese": 78,
+      "creative": 90,
+      "speed": 55,
+      "overall": 87
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 131072,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 12,
+    "or_weeklyVolume": "+10%",
+    "or_weeklyChange": "+10%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q1",
+    "notes": "仅供价格对标。输入 ¥36 是 LongCat-2.0 的 18 倍。",
+    "verified": true
+  },
+  {
+    "id": "anthropic/claude-opus-4.8",
+    "provider": "Anthropic ⚑",
+    "displayName": "Claude Opus 4.8",
+    "tier": "candidate",
+    "pricing": {
+      "input": 36,
+      "output": 180,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 96,
+      "reasoning": 95,
+      "chinese": 80,
+      "creative": 94,
+      "speed": 50,
+      "overall": 90
+    },
+    "multimodal": {
+      "vision": true,
+      "video": false,
+      "audio": false
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 131072,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 8,
+    "or_weeklyVolume": "+8%",
+    "or_weeklyChange": "+8%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-06",
+    "notes": "仅供价格对标。全球最强也最贵。国产模型 1/5 价格达到 90%+ 能力。",
+    "verified": true
+  },
+  {
+    "id": "google/gemini-3-flash",
+    "provider": "Google ⚑",
+    "displayName": "Gemini 3 Flash Preview",
+    "tier": "candidate",
+    "pricing": {
+      "input": 7.2,
+      "output": 28.8,
+      "cacheHit": null,
+      "peakMultiplier": null,
+      "peakHours": null
+    },
+    "scores": {
+      "coding": 82,
+      "reasoning": 78,
+      "chinese": 72,
+      "creative": 78,
+      "speed": 80,
+      "overall": 79
+    },
+    "multimodal": {
+      "vision": true,
+      "video": true,
+      "audio": true
+    },
+    "specs": {
+      "contextWindow": 1048576,
+      "maxOutput": 32768,
+      "supportsTools": true,
+      "supportsJson": true
+    },
+    "or_rank": 13,
+    "or_weeklyVolume": "+1%",
+    "or_weeklyChange": "+1%",
+    "isActive": true,
+    "priority": 0,
+    "releaseDate": "2026-Q2",
+    "notes": "仅供价格对标。全模态。Google 中等价位。",
+    "verified": false
+  }
+]

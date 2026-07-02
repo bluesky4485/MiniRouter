@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dist-e2e/
+.tmp-e2e/
+*.tsbuildinfo
+.DS_Store
+.worktrees/
+.gstack/
+.env
+.env.*
+*.db
+*.db-journal
+*.db-wal

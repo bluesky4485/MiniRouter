@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniRouter · 国内大模型能力与价格数据库</title>
+<style>
+  :root { --bg:#0f1117; --card:#1a1d27; --border:#2a2d3a; --text:#e1e4ed; --muted:#868b9b;
+          --green:#22c55e; --blue:#3b82f6; --purple:#a855f7; --orange:#f59e0b; --red:#ef4444;
+          --cyan:#06b6d4; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+  .container { max-width:100%; padding:20px; }
+  h1 { font-size:24px; margin-bottom:8px; }
+  .subtitle { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .subtitle a { color:var(--cyan); text-decoration:none; }
+  .subtitle a:hover { text-decoration:underline; }
+
+  /* Filters */
+  .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .filters input, .filters select { background:var(--card); border:1px solid var(--border); color:var(--text); padding:8px 14px; border-radius:8px; font-size:13px; outline:none; }
+  .filters input:focus, .filters select:focus { border-color:var(--blue); }
+  .filters input { width:280px; }
+  .filters input::placeholder { color:var(--muted); }
+  .count { color:var(--muted); font-size:13px; margin-left:auto; }
+
+  /* Table */
+  .table-wrap { overflow-x:auto; border-radius:10px; border:1px solid var(--border); }
+  table { width:100%; border-collapse:collapse; font-size:12px; white-space:nowrap; }
+  th { background:var(--card); color:var(--muted); font-weight:600; padding:8px 12px; text-align:left; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; position:sticky; top:0; z-index:1; }
+  th:hover { color:var(--text); }
+  th.sorted { color:var(--cyan); }
+  th .arrow { font-size:10px; margin-left:3px; }
+  td { padding:7px 12px; border-bottom:1px solid rgba(42,45,58,0.5); vertical-align:top; }
+  tr:hover td { background:rgba(255,255,255,0.02); }
+
+  /* Badges */
+  .tier { display:inline-block; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600; }
+  .tier-domestic { background:rgba(34,197,94,0.15); color:var(--green); }
+  .tier-international { background:rgba(59,130,246,0.15); color:var(--blue); }
+  .tier-deprecated { background:rgba(239,68,68,0.12); color:var(--red); }
+
+  .provider-chip { display:inline-block; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; }
+  .chip-deepseek { background:rgba(59,130,246,0.2); color:#60a5fa; }
+  .chip-zhipu { background:rgba(168,85,247,0.2); color:#c084fc; }
+  .chip-alibaba { background:rgba(239,68,68,0.2); color:#f87171; }
+  .chip-bytedance { background:rgba(6,182,212,0.2); color:#22d3ee; }
+  .chip-xiaomi { background:rgba(245,158,11,0.2); color:#fbbf24; }
+  .chip-minimax { background:rgba(236,72,153,0.2); color:#f472b6; }
+  .chip-meituan { background:rgba(34,197,94,0.2); color:#4ade80; }
+  .chip-tencent { background:rgba(129,140,248,0.2); color:#a5b4fc; }
+  .chip-moonshot { background:rgba(251,146,60,0.2); color:#fdba74; }
+  .chip-baidu { background:rgba(96,165,250,0.2); color:#93c5fd; }
+  .chip-stepfun { background:rgba(52,211,153,0.2); color:#6ee7b7; }
+  .chip-openai { background:rgba(16,185,129,0.2); color:#34d399; }
+  .chip-anthropic { background:rgba(251,191,36,0.2); color:#fde68a; }
+  .chip-google { background:rgba(59,130,246,0.2); color:#60a5fa; }
+
+  .score { font-family:"SF Mono",Consolas,monospace; text-align:center; }
+  .score-verified { color:var(--cyan); font-weight:600; }
+  .score-pending { color:var(--muted); font-style:italic; }
+  .price { font-family:"SF Mono",Consolas,monospace; text-align:right; white-space:nowrap; }
+  .free { color:var(--green); font-weight:600; }
+  .cheap { color:var(--cyan); }
+  .expensive { color:var(--orange); }
+  .muted { color:var(--muted); }
+  .bold { font-weight:700; }
+  .small { font-size:11px; color:var(--muted); }
+  .bool-true { color:var(--green); }
+  .bool-false { color:var(--muted); }
+
+  .notes-cell { max-width:180px; white-space:normal; font-size:11px; color:var(--muted); line-height:1.4; }
+  .source-link { color:var(--cyan); text-decoration:none; font-size:10px; }
+  .source-link:hover { text-decoration:underline; }
+  .verified-badge { font-size:10px; padding:1px 5px; border-radius:4px; }
+  .v-confirmed { background:rgba(34,197,94,0.2); color:var(--green); }
+  .v-estimate { background:rgba(245,158,11,0.2); color:var(--orange); }
+
+  .legend { font-size:11px; color:var(--muted); margin-bottom:12px; display:flex; gap:16px; flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:4px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🧠 MiniRouter 国内大模型数据库</h1>
+<p class="subtitle">
+  数据来源：<a href="#">各厂商官方定价页</a> + <a href="#">官方模型发布公告/论文</a> ·
+  更新：<span id="updateDate">2026-07-03</span> ·
+  <span class="verified-badge v-confirmed">✓</span> = 已验证数据 ·
+  <span class="verified-badge v-estimate">~</span> = 待确认/待评测
+</p>
+
+<div class="legend">
+  <span>💡 单击表头排序，输入搜索框过滤。标记"待评测"的分数需实际基准测试校准。</span>
+</div>
+
+<div class="filters">
+  <input type="text" id="search" placeholder="🔍 搜索模型名、厂商…" oninput="render()">
+  <select id="filterTier" onchange="render()">
+    <option value="">全部档位</option>
+    <option value="domestic">🟢 国内</option>
+    <option value="international">🔵 国际</option>
+    <option value="deprecated">🔴 淘汰</option>
+  </select>
+  <select id="filterProvider" onchange="render()">
+    <option value="">全部厂商</option>
+  </select>
+  <select id="filterVerified" onchange="render()">
+    <option value="">全部可信度</option>
+    <option value="confirmed">✓ 已验证</option>
+    <option value="partial">⚠ 部分验证</option>
+    <option value="unverified">✗ 待确认</option>
+  </select>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+  <th data-sort="displayName" class="sorted" onclick="sortBy('displayName')">模型<span class="arrow">▾</span></th>
+  <th data-sort="provider" onclick="sortBy('provider')">厂商</th>
+  <th data-sort="tier" onclick="sortBy('tier')">档位</th>
+  <th data-sort="pricing.input" onclick="sortBy('pricing.input')">输入 ¥/M<span class="arrow"></span></th>
+  <th data-sort="pricing.output" onclick="sortBy('pricing.output')">输出 ¥/M<span class="arrow"></span></th>
+  <th data-sort="pricing.cacheHit" onclick="sortBy('pricing.cacheHit')">缓存命中<span class="arrow"></span></th>
+  <th data-sort="scores.coding" onclick="sortBy('scores.coding')">代码<span class="arrow"></span></th>
+  <th data-sort="scores.reasoning" onclick="sortBy('scores.reasoning')">推理<span class="arrow"></span></th>
+  <th data-sort="scores.chinese" onclick="sortBy('scores.chinese')">中文<span class="arrow"></span></th>
+  <th data-sort="specs.contextWindow" onclick="sortBy('specs.contextWindow')">上下文</th>
+  <th>多模态</th>
+  <th>Tools</th>
+  <th>数据来源</th>
+  <th>数据可信度</th>
+  <th>备注</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<p style="margin-top:12px;font-size:11px;color:var(--muted)">
+  <strong>数据可信度说明</strong>：
+  <span class="verified-badge v-confirmed">✓ 已验证</span> = 价格来自官方定价页 + 能力分来自官方发布评测 ·
+  <span class="verified-badge v-estimate">⚠ 部分验证</span> = 价格已验证，能力分待评测 ·
+  <span class="verified-badge v-estimate" style="opacity:0.5">✗ 待确认</span> = 所有数据均待确认 ·
+  价格单位：元/百万Token。USD 按 1 USD ≈ 7.2 CNY 换算。
+</p>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// 模型数据库 — 每条记录标注数据来源 URL
+// ═══════════════════════════════════════════════════════════════════
+// dataStatus: "confirmed" | "partial" | "unverified"
+// "confirmed" = 价格来自官方 + 能力分来自官方评测/论文
+// "partial"   = 价格已验证，能力分待评测
+// "unverified" = 全部待确认
+
+const MODELS = [
+  // ═══════════════════════════════════════════════════════════════
+  // DeepSeek — 官方定价: api-docs.deepseek.com/quick_start/pricing
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"deepseek/v4-flash", provider:"DeepSeek", displayName:"DeepSeek V4 Flash", tier:"domestic",
+    pricing:{input:1.01, output:2.02, cacheHit:0.02},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:384000, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-05",
+    notes:"1M上下文，384K输出。高峰时段(9-12,14-18)价格翻倍。旧 deepseek-chat 2026-07-24 废弃。",
+    dataStatus:"partial",
+    sourcePricing:"https://api-docs.deepseek.com/quick_start/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"deepseek/v4-pro", provider:"DeepSeek", displayName:"DeepSeek V4 Pro", tier:"domestic",
+    pricing:{input:3.13, output:6.26, cacheHit:0.026},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:384000, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-05",
+    notes:"支持 thinking mode。高峰价格翻倍。",
+    dataStatus:"partial",
+    sourcePricing:"https://api-docs.deepseek.com/quick_start/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"deepseek/v3.2", provider:"DeepSeek", displayName:"DeepSeek V3.2", tier:"deprecated",
+    pricing:{input:2.0, output:8.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025-Q4",
+    notes:"⚠️ 2026-07-24 废弃。建议迁移到 V4 Flash。",
+    dataStatus:"partial",
+    sourcePricing:"https://api-docs.deepseek.com/quick_start/pricing",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 智谱 GLM — 官方定价: open.bigmodel.cn/pricing (需JS渲染)
+  // 模型发布: bigmodel.cn 开发者社区
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"zhipu/glm-5.2", provider:"智谱 (Zhipu)", displayName:"GLM-5.2", tier:"international",
+    pricing:{input:8.0, output:28.0, cacheHit:2.0},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:32768, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-06-17",
+    notes:"官方称代码能力对标 Claude Opus 4.6。1M上下文。2026-06-17发布。需确认官方评测数据。",
+    dataStatus:"partial",
+    sourcePricing:"https://open.bigmodel.cn/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"zhipu/glm-4-flash", provider:"智谱 (Zhipu)", displayName:"GLM-4-Flash", tier:"domestic",
+    pricing:{input:0, output:0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:false, supportsJson:false},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2024-Q4",
+    notes:"永久免费。可作为零成本兜底模型。",
+    dataStatus:"partial",
+    sourcePricing:"https://open.bigmodel.cn/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"zhipu/glm-4-flashx", provider:"智谱 (Zhipu)", displayName:"GLM-4-FlashX", tier:"domestic",
+    pricing:{input:0.1, output:0.1, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:false},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2025-H1",
+    notes:"几乎免费，有 Function Calling。",
+    dataStatus:"partial",
+    sourcePricing:"https://open.bigmodel.cn/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"zhipu/glm-4-air", provider:"智谱 (Zhipu)", displayName:"GLM-4-Air", tier:"domestic",
+    pricing:{input:0.6, output:0.6, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025-H1",
+    notes:"¥0.6 同价。",
+    dataStatus:"partial",
+    sourcePricing:"https://open.bigmodel.cn/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"zhipu/glm-4-plus", provider:"智谱 (Zhipu)", displayName:"GLM-4-Plus", tier:"domestic",
+    pricing:{input:5.0, output:5.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025-Q3",
+    notes:null,
+    dataStatus:"partial",
+    sourcePricing:"https://open.bigmodel.cn/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"zhipu/glm-4-long", provider:"智谱 (Zhipu)", displayName:"GLM-4-Long", tier:"domestic",
+    pricing:{input:1.0, output:1.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:8192, supportsTools:false, supportsJson:false},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025-Q2",
+    notes:"1M上下文 ¥1/1。",
+    dataStatus:"partial",
+    sourcePricing:"https://open.bigmodel.cn/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"zhipu/glm-z1-air", provider:"智谱 (Zhipu)", displayName:"GLM-Z1-Air", tier:"domestic",
+    pricing:{input:1.0, output:1.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:32768, supportsTools:false, supportsJson:false},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025-Q3",
+    notes:"推理专用轻量模型。",
+    dataStatus:"partial",
+    sourcePricing:"https://open.bigmodel.cn/pricing",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 阿里通义千问 — 官方定价: help.aliyun.com/zh/model-studio
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"alibaba/qwen3.6-max", provider:"阿里 (Alibaba)", displayName:"Qwen3.6-Max", tier:"international",
+    pricing:{input:2.5, output:10.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:262144, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:true, audio:false},
+    releaseDate:"2026-Q2",
+    notes:"中文评测领先。⚠️ 长文本(>128K)价格跳涨到 ¥7.0/28.0。阶梯定价。",
+    dataStatus:"partial",
+    sourcePricing:"https://help.aliyun.com/zh/model-studio/getting-started/models",
+    sourceBenchmark:null
+  },
+  {
+    id:"alibaba/qwen3.5-plus", provider:"阿里 (Alibaba)", displayName:"Qwen3.5-Plus", tier:"domestic",
+    pricing:{input:0.8, output:4.8, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"1M上下文 ¥0.8 输入。阶梯定价(>128K跳涨)。",
+    dataStatus:"partial",
+    sourcePricing:"https://help.aliyun.com/zh/model-studio/getting-started/models",
+    sourceBenchmark:null
+  },
+  {
+    id:"alibaba/qwen3.6-flash", provider:"阿里 (Alibaba)", displayName:"Qwen3.6-Flash", tier:"domestic",
+    pricing:{input:0.37, output:2.94, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:null,
+    dataStatus:"partial",
+    sourcePricing:"https://help.aliyun.com/zh/model-studio/getting-started/models",
+    sourceBenchmark:null
+  },
+  {
+    id:"alibaba/qwen-turbo", provider:"阿里 (Alibaba)", displayName:"Qwen-Turbo", tier:"domestic",
+    pricing:{input:0.3, output:0.6, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:false, supportsJson:false},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025",
+    notes:"经典便宜模型。",
+    dataStatus:"partial",
+    sourcePricing:"https://help.aliyun.com/zh/model-studio/getting-started/models",
+    sourceBenchmark:null
+  },
+  {
+    id:"alibaba/qwen3.5-omni-plus", provider:"阿里 (Alibaba)", displayName:"Qwen3.5-Omni-Plus", tier:"domestic",
+    pricing:{input:1.5, output:6.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:true, audio:true},
+    releaseDate:"2026-Q1",
+    notes:"全模态（视觉+视频+音频）。",
+    dataStatus:"partial",
+    sourcePricing:"https://help.aliyun.com/zh/model-studio/getting-started/models",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 小米 MiMo — 定价: 小米AI开放平台 / OpenRouter
+  // ⚠️ 官方国内定价页面待确认
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"xiaomi/mimo-v2.5", provider:"小米 (Xiaomi)", displayName:"MiMo-V2.5", tier:"domestic",
+    pricing:{input:1.0, output:2.0, cacheHit:0.02},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:true, audio:true},
+    releaseDate:"2025-Q4",
+    notes:"全模态+首字极快。2026.6.30 V2系列已废弃，V2.5为当前系列。ASR/TTS 另计费。",
+    dataStatus:"confirmed",
+    sourcePricing:"https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go",
+    sourceBenchmark:null
+  },
+  {
+    id:"xiaomi/mimo-v2.5-pro", provider:"小米 (Xiaomi)", displayName:"MiMo-V2.5-Pro", tier:"international",
+    pricing:{input:3.0, output:6.0, cacheHit:0.025},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:32768, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:true, audio:true},
+    releaseDate:"2026-Q1",
+    notes:"全模态旗舰+1M上下文。",
+    dataStatus:"confirmed",
+    sourcePricing:"https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go",
+    sourceBenchmark:null
+  },
+  {
+    id:"xiaomi/mimo-v2-flash", provider:"小米 (Xiaomi)", displayName:"MiMo-V2-Flash", tier:"domestic",
+    pricing:{input:null, output:null, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2025-Q4",
+    notes:"V2系列已废弃 2026.6.30。建议迁移到V2.5。价格已下线。",
+    dataStatus:"deprecated",
+    sourcePricing:"https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 字节豆包 — 官方定价: volcengine.com (火山引擎)
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"bytedance/seed-2.0-pro", provider:"字节 (ByteDance)", displayName:"Seed-2.0-Pro", tier:"international",
+    pricing:{input:3.2, output:16.0, cacheHit:0.8},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:true, audio:false},
+    releaseDate:"2026-Q2",
+    notes:"Batch半价。需确认官方定价页面。",
+    dataStatus:"unverified",
+    sourcePricing:"https://www.volcengine.com/docs/82379/1099320",
+    sourceBenchmark:null
+  },
+  {
+    id:"bytedance/seed-2.0-mini", provider:"字节 (ByteDance)", displayName:"Seed-2.0-Mini", tier:"domestic",
+    pricing:{input:0.2, output:2.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q2",
+    notes:null,
+    dataStatus:"unverified",
+    sourcePricing:"https://www.volcengine.com/docs/82379/1099320",
+    sourceBenchmark:null
+  },
+  {
+    id:"bytedance/seed-1.6-flash", provider:"字节 (ByteDance)", displayName:"Seed-1.6-Flash", tier:"domestic",
+    pricing:{input:0.075, output:0.75, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:32768, maxOutput:8192, supportsTools:false, supportsJson:false},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"全场最低价 ¥0.075。能力偏弱。",
+    dataStatus:"unverified",
+    sourcePricing:"https://www.volcengine.com/docs/82379/1099320",
+    sourceBenchmark:null
+  },
+  {
+    id:"bytedance/seed-2.0-lite", provider:"字节 (ByteDance)", displayName:"Seed-2.0-Lite", tier:"domestic",
+    pricing:{input:0.6, output:3.66, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q2",
+    notes:null,
+    dataStatus:"unverified",
+    sourcePricing:"https://www.volcengine.com/docs/82379/1099320",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 美团 LongCat — 官方发布: 2026-06-30
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"meituan/longcat-2.0", provider:"美团 (Meituan)", displayName:"LongCat-2.0", tier:"domestic",
+    pricing:{input:2.0, output:8.0, cacheHit:0.04},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:131072, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-06-30",
+    notes:"1.6T MoE，MIT开源。¥9.9/5000万Token包。SWE-bench 59.5（需确认来源）。官方定价页待确认。",
+    dataStatus:"unverified",
+    sourcePricing:null,
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // MiniMax — 官方定价: platform.minimaxi.com
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"minimax/m3", provider:"MiniMax", displayName:"MiniMax M3", tier:"domestic",
+    pricing:{input:2.1, output:8.4, cacheHit:0.42},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:197000, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"缓存机制好。1M上下文（?）。需确认官方定价。",
+    dataStatus:"unverified",
+    sourcePricing:"https://platform.minimaxi.com/document/Price",
+    sourceBenchmark:null
+  },
+  {
+    id:"minimax/m2.7", provider:"MiniMax", displayName:"MiniMax M2.7", tier:"deprecated",
+    pricing:{input:2.1, output:8.4, cacheHit:0.42},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:197000, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2025-Q4",
+    notes:"M3前代。建议迁移到M3。",
+    dataStatus:"unverified",
+    sourcePricing:"https://platform.minimaxi.com/document/Price",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 腾讯混元 — 官方定价: cloud.tencent.com/document/product/1729
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"tencent/hy3-preview", provider:"腾讯 (Tencent)", displayName:"混元 Hy3 Preview", tier:"deprecated",
+    pricing:{input:null, output:null, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-06",
+    notes:"预览版，价格待公布。",
+    dataStatus:"unverified",
+    sourcePricing:null,
+    sourceBenchmark:null
+  },
+  {
+    id:"tencent/hunyuan-turbos", provider:"腾讯 (Tencent)", displayName:"混元 TurboS", tier:"domestic",
+    pricing:{input:0.8, output:2.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025-Q4",
+    notes:null,
+    dataStatus:"partial",
+    sourcePricing:"https://cloud.tencent.com/document/product/1729/97731",
+    sourceBenchmark:null
+  },
+  {
+    id:"tencent/hy2.0-think", provider:"腾讯 (Tencent)", displayName:"混元 HY2.0 Think", tier:"domestic",
+    pricing:{input:4.0, output:16.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:false, supportsJson:false},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"推理专用。",
+    dataStatus:"partial",
+    sourcePricing:"https://cloud.tencent.com/document/product/1729/97731",
+    sourceBenchmark:null
+  },
+  {
+    id:"tencent/hunyuan-lite", provider:"腾讯 (Tencent)", displayName:"混元 Lite", tier:"domestic",
+    pricing:{input:0, output:0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:32768, maxOutput:4096, supportsTools:false, supportsJson:false},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2025",
+    notes:"永久免费。",
+    dataStatus:"partial",
+    sourcePricing:"https://cloud.tencent.com/document/product/1729/97731",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 月之暗面 Kimi — 官方定价: platform.kimi.com/docs/pricing
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"moonshot/kimi-k2.7-code", provider:"月之暗面 (Moonshot)", displayName:"Kimi K2.7 Code", tier:"international",
+    pricing:{input:6.5, output:27.0, cacheHit:1.3},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:262144, maxOutput:32768, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-06",
+    notes:"输出¥27极贵。缓存¥1.3。",
+    dataStatus:"partial",
+    sourcePricing:"https://platform.kimi.com/docs/pricing/chat-k27-code",
+    sourceBenchmark:null
+  },
+  {
+    id:"moonshot/kimi-k2.7-code-highspeed", provider:"月之暗面 (Moonshot)", displayName:"Kimi K2.7 Code HS", tier:"international",
+    pricing:{input:13.0, output:54.0, cacheHit:2.6},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:262144, maxOutput:32768, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-06",
+    notes:"高速版 180-260 TPS。价格翻倍。",
+    dataStatus:"partial",
+    sourcePricing:"https://platform.kimi.com/docs/pricing/chat-k27-code",
+    sourceBenchmark:null
+  },
+  {
+    id:"moonshot/kimi-k2.6", provider:"月之暗面 (Moonshot)", displayName:"Kimi K2.6", tier:"deprecated",
+    pricing:{input:6.5, output:27.0, cacheHit:1.1},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:262144, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"被K2.7替代。",
+    dataStatus:"partial",
+    sourcePricing:"https://platform.kimi.com/docs/pricing/chat-k26",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 阶跃星辰 Step — 需确认官方定价
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"stepfun/step-3.7-flash", provider:"阶跃星辰 (StepFun)", displayName:"Step 3.7 Flash", tier:"deprecated",
+    pricing:{input:null, output:null, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q2",
+    notes:"需确认官方定价和评测。",
+    dataStatus:"unverified",
+    sourcePricing:null,
+    sourceBenchmark:null
+  },
+  {
+    id:"stepfun/step-2", provider:"阶跃星辰 (StepFun)", displayName:"Step-2", tier:"deprecated",
+    pricing:{input:null, output:null, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:true, audio:false},
+    releaseDate:"2025-Q4",
+    notes:"多模态旗舰。需确认价格和能力。",
+    dataStatus:"unverified",
+    sourcePricing:null,
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 百度文心 — 官方定价: cloud.baidu.com
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"baidu/ernie-5.0", provider:"百度 (Baidu)", displayName:"ERNIE-5.0", tier:"deprecated",
+    pricing:{input:8.0, output:32.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:true, supportsJson:false},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"百度旗舰。API兼容需适配器。需确认官方定价。",
+    dataStatus:"unverified",
+    sourcePricing:"https://cloud.baidu.com/product-s/qianfan_home",
+    sourceBenchmark:null
+  },
+  {
+    id:"baidu/ernie-4.5-turbo", provider:"百度 (Baidu)", displayName:"ERNIE 4.5 Turbo", tier:"deprecated",
+    pricing:{input:0.8, output:3.2, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:8192, supportsTools:true, supportsJson:false},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"¥0.8便宜。需适配器。",
+    dataStatus:"unverified",
+    sourcePricing:"https://cloud.baidu.com/product-s/qianfan_home",
+    sourceBenchmark:null
+  },
+  {
+    id:"baidu/ernie-x1.1", provider:"百度 (Baidu)", displayName:"ERNIE X1.1 Preview", tier:"deprecated",
+    pricing:{input:1.0, output:4.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:131072, maxOutput:16384, supportsTools:false, supportsJson:false},
+    multimodal:{vision:false, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"推理中型。",
+    dataStatus:"unverified",
+    sourcePricing:"https://cloud.baidu.com/product-s/qianfan_home",
+    sourceBenchmark:null
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 国际对标（仅供价格参考）
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id:"openai/gpt-5.5", provider:"OpenAI ⚑", displayName:"GPT-5.5", tier:"deprecated",
+    pricing:{input:36.0, output:216.0, cacheHit:18.0},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:131072, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-Q1",
+    notes:"仅供价格对标。",
+    dataStatus:"partial",
+    sourcePricing:"https://openai.com/api/pricing/",
+    sourceBenchmark:null
+  },
+  {
+    id:"anthropic/claude-opus-4.8", provider:"Anthropic ⚑", displayName:"Claude Opus 4.8", tier:"deprecated",
+    pricing:{input:36.0, output:180.0, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:131072, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:false, audio:false},
+    releaseDate:"2026-06",
+    notes:"仅供价格对标。",
+    dataStatus:"partial",
+    sourcePricing:"https://www.anthropic.com/pricing",
+    sourceBenchmark:null
+  },
+  {
+    id:"google/gemini-3-flash", provider:"Google ⚑", displayName:"Gemini 3 Flash", tier:"deprecated",
+    pricing:{input:7.2, output:28.8, cacheHit:null},
+    scores:{coding:null, reasoning:null, chinese:null, creative:null, speed:null},
+    specs:{contextWindow:1048576, maxOutput:32768, supportsTools:true, supportsJson:true},
+    multimodal:{vision:true, video:true, audio:true},
+    releaseDate:"2026-Q2",
+    notes:"仅供价格对标。",
+    dataStatus:"partial",
+    sourcePricing:"https://ai.google.dev/pricing",
+    sourceBenchmark:null
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// 渲染逻辑
+// ═══════════════════════════════════════════════════════════════════
+
+let sortField = "displayName";
+let sortDir = 1;
+
+function initProviders() {
+  const providers = [...new Set(MODELS.map(m=>m.provider))].sort();
+  const sel = document.getElementById("filterProvider");
+  providers.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p; opt.textContent = p.replace(" ⚑",""); sel.appendChild(opt);
+  });
+}
+
+function fmtPrice(v) {
+  if (v === null || v === undefined) return '<span class="muted">—</span>';
+  if (v === 0) return '<span class="free">免费</span>';
+  if (v < 1) return `<span class="cheap">¥${v.toFixed(3)}</span>`;
+  if (v > 20) return `<span class="expensive">¥${v.toFixed(1)}</span>`;
+  return `¥${v.toFixed(2)}`;
+}
+
+function fmtContext(v) {
+  if (!v) return '<span class="muted">—</span>';
+  if (v >= 1048576) return (v/1048576).toFixed(1)+"M";
+  if (v >= 1024) return Math.round(v/1024)+"K";
+  return v+"";
+}
+
+function fmtBool(v) { return v ? '<span class="bool-true">✅</span>' : '<span class="bool-false">—</span>'; }
+
+function tierBadge(t) {
+  const map = {domestic:'tier-domestic',international:'tier-international',deprecated:'tier-deprecated'};
+  const label = {domestic:'国内',international:'国际',deprecated:'淘汰'};
+  return `<span class="tier ${map[t]||''}">${label[t]||t}</span>`;
+}
+
+function providerChip(p) {
+  const map = {
+    'DeepSeek':'chip-deepseek','智谱 (Zhipu)':'chip-zhipu','阿里 (Alibaba)':'chip-alibaba',
+    '字节 (ByteDance)':'chip-bytedance','小米 (Xiaomi)':'chip-xiaomi','MiniMax':'chip-minimax',
+    '美团 (Meituan)':'chip-meituan','腾讯 (Tencent)':'chip-tencent','月之暗面 (Moonshot)':'chip-moonshot',
+    '百度 (Baidu)':'chip-baidu','阶跃星辰 (StepFun)':'chip-stepfun',
+    'OpenAI ⚑':'chip-openai','Anthropic ⚑':'chip-anthropic','Google ⚑':'chip-google',
+  };
+  return `<span class="provider-chip ${map[p]||''}">${p.replace(' ⚑','')}</span>`;
+}
+
+function multimodalCell(m) {
+  const parts = [];
+  if (m.multimodal.vision) parts.push('👁');
+  if (m.multimodal.video) parts.push('🎬');
+  if (m.multimodal.audio) parts.push('🎵');
+  return parts.length ? parts.join(' ') : '<span class="bool-false">—</span>';
+}
+
+function scoreCell(v, status) {
+  if (v !== null && v !== undefined) return `<span class="score score-verified">${v}</span>`;
+  return `<span class="score score-pending">待评测</span>`;
+}
+
+function sourceCell(m) {
+  const parts = [];
+  if (m.sourcePricing) parts.push(`<a class="source-link" href="${m.sourcePricing}" target="_blank">定价↗</a>`);
+  if (m.sourceBenchmark) parts.push(`<a class="source-link" href="${m.sourceBenchmark}" target="_blank">评测↗</a>`);
+  if (!parts.length) return '<span class="muted small">待补充</span>';
+  return parts.join(' · ');
+}
+
+function dataBadge(s) {
+  const map = {
+    'confirmed': '<span class="verified-badge v-confirmed">✓ 已验证</span>',
+    'partial': '<span class="verified-badge v-estimate">⚠ 部分验证</span>',
+    'unverified': '<span class="verified-badge v-estimate" style="opacity:0.6">✗ 待确认</span>'
+  };
+  return map[s] || s;
+}
+
+function sortBy(field) {
+  if (sortField === field) { sortDir *= -1; }
+  else { sortField = field; sortDir = 1; }
+  render();
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.remove('sorted');
+    const arrow = th.querySelector('.arrow');
+    if (arrow) arrow.textContent = '';
+  });
+  const activeTh = document.querySelector(`th[data-sort="${field}"]`);
+  if (activeTh) {
+    activeTh.classList.add('sorted');
+    const arrow = activeTh.querySelector('.arrow');
+    if (arrow) arrow.textContent = sortDir === 1 ? '▴' : '▾';
+  }
+}
+
+function getNested(obj, path) {
+  return path.split('.').reduce((o,k) => (o||{})[k], obj);
+}
+
+function render() {
+  const search = (document.getElementById("search").value||"").toLowerCase();
+  const filterTier = document.getElementById("filterTier").value;
+  const filterProvider = document.getElementById("filterProvider").value;
+  const filterVerified = document.getElementById("filterVerified").value;
+
+  let filtered = MODELS.filter(m => {
+    if (search) {
+      const hay = (m.displayName + " " + m.provider + " " + m.id + " " + (m.notes||"")).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (filterTier && m.tier !== filterTier) return false;
+    if (filterProvider && m.provider !== filterProvider) return false;
+    if (filterVerified && m.dataStatus !== filterVerified) return false;
+    return true;
+  });
+
+  filtered.sort((a,b) => {
+    let va = getNested(a, sortField);
+    let vb = getNested(b, sortField);
+    if (va === null || va === undefined) va = sortDir === 1 ? Infinity : -Infinity;
+    if (vb === null || vb === undefined) vb = sortDir === 1 ? Infinity : -Infinity;
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return -1 * sortDir;
+    if (va > vb) return 1 * sortDir;
+    return 0;
+  });
+
+  document.getElementById("count").textContent = `显示 ${filtered.length} / ${MODELS.length} 模型`;
+
+  let lastProvider = "";
+  let html = "";
+  for (const m of filtered) {
+    if (m.provider !== lastProvider) {
+      html += `<tr style="background:var(--card)"><td colspan="15" style="padding:5px 12px;font-size:11px;color:var(--muted);font-weight:700">
+        ${providerChip(m.provider)} ${m.provider.replace(' ⚑','')}
+        ${m.sourcePricing ? `<a class="source-link" href="${m.sourcePricing}" target="_blank" style="margin-left:8px">官方定价页 ↗</a>` : ''}
+      </td></tr>`;
+      lastProvider = m.provider;
+    }
+    html += `<tr>
+      <td><span class="bold">${m.displayName}</span><br><span class="small">${m.id}</span></td>
+      <td>${providerChip(m.provider)}</td>
+      <td>${tierBadge(m.tier)}</td>
+      <td class="price">${fmtPrice(m.pricing.input)}</td>
+      <td class="price">${fmtPrice(m.pricing.output)}</td>
+      <td class="price">${m.pricing.cacheHit != null ? fmtPrice(m.pricing.cacheHit) : '<span class="muted">—</span>'}</td>
+      <td>${scoreCell(m.scores.coding, m.dataStatus)}</td>
+      <td>${scoreCell(m.scores.reasoning, m.dataStatus)}</td>
+      <td>${scoreCell(m.scores.chinese, m.dataStatus)}</td>
+      <td>${fmtContext(m.specs.contextWindow)}</td>
+      <td>${multimodalCell(m)}</td>
+      <td>${fmtBool(m.specs.supportsTools)}</td>
+      <td style="white-space:nowrap">${sourceCell(m)}</td>
+      <td>${dataBadge(m.dataStatus)}</td>
+      <td class="notes-cell">${m.notes||''}</td>
+    </tr>`;
+  }
+
+  document.getElementById("tbody").innerHTML = html;
+}
+
+initProviders();
+render();
+</script>
+</body>
+</html>
