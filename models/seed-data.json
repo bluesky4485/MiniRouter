@@ -628,8 +628,8 @@
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 89.6,
+      "reasoning": 90.3,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -648,7 +648,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-07",
-    "notes": "中端。≤256K¥2/8,>256K跳涨。",
+    "notes": "多模态Agent模型。MMLU88.5,LiveCodeBench89.6,GPQA90.3,ScreenSpot Pro79.0。",
     "verified": true
   },
   {
@@ -1853,7 +1853,7 @@
     },
     "scores": {
       "coding": 74,
-      "reasoning": 90,
+      "reasoning": 92.9,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1872,7 +1872,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-Q1",
-    "notes": "标准≤512K¥2.1/8.4。SWE-bench Pro59.0,GPQA Diamond~90,AA综合54.7。",
+    "notes": "1M上下文。GPQA Diamond92.9(全球前4),SWE-bench Pro59.0(超GPT-5.5),LiveCodeBench74.0。",
     "verified": true
   },
   {
@@ -1918,6 +1918,8 @@
       "cacheHit": null
     },
     "scores": {
+      "coding": null,
+      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1936,7 +1938,7 @@
     "isActive": true,
     "priority": 0,
     "releaseDate": "2026-06",
-    "notes": "预览版。价格待公布。",
+    "notes": "姚顺雨带队重建。SWE-bench74.4,Terminal-Bench54.4,GPQA Diamond0.7。295B MoE。",
     "verified": true
   },
   {
@@ -1950,6 +1952,8 @@
       "cacheHit": null
     },
     "scores": {
+      "coding": null,
+      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null

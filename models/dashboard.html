@@ -774,8 +774,8 @@ const MODELS = [
       "cacheHit": null
     },
     "scores": {
-      "coding": null,
-      "reasoning": null,
+      "coding": 89.6,
+      "reasoning": 90.3,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -792,10 +792,10 @@ const MODELS = [
       "audio": false
     },
     "releaseDate": "2026-07",
-    "notes": "中端。≤256K¥2/8,>256K跳涨。",
+    "notes": "多模态Agent模型。MMLU88.5,LiveCodeBench89.6,GPQA90.3,ScreenSpot Pro79.0。",
     "dataStatus": "confirmed",
     "sourcePricing": "https://help.aliyun.com/zh/model-studio/getting-started/models",
-    "sourceBenchmark": null
+    "sourceBenchmark": "https://aiflashreport.com/models/qwen3-7-plus/"
   },
   {
     "id": "alibaba/qwen3-max",
@@ -1965,7 +1965,7 @@ const MODELS = [
     },
     "scores": {
       "coding": 74,
-      "reasoning": 90,
+      "reasoning": 92.9,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -1982,7 +1982,7 @@ const MODELS = [
       "audio": false
     },
     "releaseDate": "2026-Q1",
-    "notes": "标准≤512K¥2.1/8.4。SWE-bench Pro59.0,GPQA Diamond~90,AA综合54.7。",
+    "notes": "1M上下文。GPQA Diamond92.9(全球前4),SWE-bench Pro59.0(超GPT-5.5),LiveCodeBench74.0。",
     "dataStatus": "confirmed",
     "sourcePricing": "https://platform.minimaxi.com/docs/guides/pricing-paygo",
     "sourceBenchmark": "https://codingfleet.com/blog/minimax-m3-vs-deepseek-v4-pro-the-open-weight-chinese-ai-showdown/"
@@ -2029,6 +2029,8 @@ const MODELS = [
       "cacheHit": null
     },
     "scores": {
+      "coding": null,
+      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2045,9 +2047,10 @@ const MODELS = [
       "audio": false
     },
     "releaseDate": "2026-06",
-    "notes": "预览版。价格待公布。",
+    "notes": "姚顺雨带队重建。SWE-bench74.4,Terminal-Bench54.4,GPQA Diamond0.7。295B MoE。",
     "dataStatus": "unverified",
-    "sourcePricing": null
+    "sourcePricing": null,
+    "sourceBenchmark": null
   },
   {
     "id": "tencent/hunyuan-turbos",
@@ -2060,6 +2063,8 @@ const MODELS = [
       "cacheHit": null
     },
     "scores": {
+      "coding": null,
+      "reasoning": null,
       "chinese": null,
       "creative": null,
       "speed": null
@@ -2078,7 +2083,8 @@ const MODELS = [
     "releaseDate": "2025-Q4",
     "notes": "¥0.8/2.0极低。",
     "dataStatus": "confirmed",
-    "sourcePricing": "https://cloud.tencent.com/document/product/1729/97731"
+    "sourcePricing": "https://cloud.tencent.com/document/product/1729/97731",
+    "sourceBenchmark": null
   },
   {
     "id": "tencent/hunyuan-a13b",
@@ -2585,7 +2591,7 @@ const MODELS = [
     "dataStatus": "confirmed",
     "sourcePricing": "https://ai.google.dev/pricing"
   }
-];
+]
 
 // ═══════════════════════════ Variables & Init ══════════════════════
 let sortField = "displayName";
@@ -2601,7 +2607,8 @@ function initProviders() {
 }
 
 initProviders();
-document.getElementById("filterType").value = "active";
+let sortField = "displayName";
+let sortDir = 1;
 render();
 
 function fmtPrice(v) {
