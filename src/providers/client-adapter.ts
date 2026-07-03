@@ -17,7 +17,12 @@
  * | # | adapter              | 触发客户端   | 问题                                         | 改动                    |
  * |---|----------------------|-------------|----------------------------------------------|------------------------|
  * | 1 | fixEmptyImageDetail  | Claude Code | image_url.detail="" 被上游 400                | "" → "auto"            |
- * | 2 | removeThinkingConfig | Claude Code | thinking: {type} 被转为 thinking_budget=0 400 | 直接移除 thinking 字段  |
+ *
+ * 已移除：
+ * |   | removeThinkingConfig | Claude Code | thinking: {type} 被转为 thinking_budget=0 400 | 直接移除 thinking 字段  |
+ *   2026-07-03 移除：胜算云已修复该 bug（probe 验证 thinking:{type:"adaptive"} 返回 200，
+ *   thinking:{type:"enabled",budget_tokens} 能真正开启思考）。原 adapter 删字段反而
+ *   害客户端开不了思考。按"原生透传"原则，thinking 字段原样发给上游。
  *
  * 如何添加新 adapter：
  * 1. 在下方定义函数：(body) => Record<string, unknown>
@@ -76,29 +81,9 @@ function fixEmptyImageDetail(body: Record<string, unknown>): Record<string, unkn
   return { ...body, messages };
 }
 
-/**
- * [Adapter] removeThinkingConfig
- *
- * 触发客户端：Claude Code（开启 thinking 模式时发送 thinking 参数）
- * 报错场景：Claude Code 发 thinking: {type: "adaptive"}，胜算云内部将其转为
- *           thinking_budget=0 传给上游模型，上游返回：
- *           400 "thinking_budget must be a positive integer and not greater than 0"
- * 改动内容：移除 thinking 对象（非 vision 模型不支持 thinking，保留无意义）
- * 影响范围：OpenAI 兼容路由 + Anthropic 路由
- */
-function removeThinkingConfig(body: Record<string, unknown>): Record<string, unknown> {
-  const thinking = body["thinking"];
-  if (thinking === undefined || thinking === null) return body;
-
-  const copy = { ...body };
-  delete copy["thinking"];
-  console.log(`[client-adapter] removeThinkingConfig → removed thinking=${JSON.stringify(thinking)}`);
-  return copy;
-}
-
 // ─── Adapter pipeline ──────────────────────────────────────────────────
 // Order matters — each adapter sees the output of the previous one.
-const adapters = [fixEmptyImageDetail, removeThinkingConfig];
+const adapters = [fixEmptyImageDetail];
 
 /**
  * Run all registered client adapters on a request body.
