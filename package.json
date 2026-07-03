@@ -35,24 +35,14 @@
   "scripts": {
     "build": "tsup",
     "serve": "tsx src/server/serve.ts",
+    "restart": "restart.bat",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "test:resilience:errors": "tsx test/resilience-errors.ts",
-    "test:resilience:stability": "DURATION_MINUTES=5 tsx test/resilience-stability.ts",
-    "test:resilience:stability:full": "DURATION_MINUTES=240 tsx test/resilience-stability.ts",
-    "test:resilience:lifecycle": "tsx test/resilience-lifecycle.ts",
-    "test:resilience:quick": "npm run test:resilience:errors && npm run test:resilience:lifecycle",
-    "test:resilience:full": "npm run test:resilience:errors && npm run test:resilience:lifecycle && npm run test:resilience:stability:full",
-    "test:e2e": "tsx test/test-e2e.ts",
-    "test:e2e:tool-ids": "npm run build && tsx test/e2e-tool-id-sanitization.ts",
-    "test:docker:install": "bash test/run-docker-test.sh",
-    "test:docker:edge-cases": "bash test/docker/run-edge-cases.sh",
-    "test:docker:integration": "docker compose -f test/integration/docker-compose.yml up --build --abort-on-container-exit --exit-code-from integration"
+    "format:check": "prettier --check ."
   },
   "keywords": [
     "llm",
