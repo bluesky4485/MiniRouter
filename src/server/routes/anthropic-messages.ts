@@ -11,6 +11,7 @@ import { executeAnthropicMessages } from "../../providers/anthropic.js";
 import type { ModelSlot } from "../../providers/types.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
 import { parseAnthropicUsage, toMutableUpstreamResponse } from "./chat.js";
+import { extractPromptDigest } from "../../routing/features/prompt-digest.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -122,6 +123,8 @@ export async function anthropicMessages(c: Context) {
   const auth = c.get("auth") as AuthResult;
   const body = await c.req.json();
   const requestId = randomUUID();
+  const normalized = normalizeAnthropicMessagesRequest(body);
+  const promptDigest = extractPromptDigest(normalized.messages);
   let configured: SlotConfig | null;
   try {
     configured = selectConfiguredSlotForAnthropicMessages(body);
@@ -171,6 +174,7 @@ export async function anthropicMessages(c: Context) {
       hasTools: configured.features.requirements.toolCalling,
       isStreaming,
       hasVision: configured.features.requirements.vision,
+      promptDigest: promptDigest ?? undefined,
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);

@@ -18,6 +18,7 @@ import { getSlotForRoutingModel, loadModelSlotsFromEnv, pickSlotForFeatures } fr
 import type { ModelSlot } from "../../providers/types.js";
 import { executeOpenAICompatibleChat } from "../../providers/openai-compatible.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
+import { extractPromptDigest } from "../../routing/features/prompt-digest.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -288,6 +289,7 @@ export async function chatCompletions(c: Context) {
       hasTools: features.requirements.toolCalling,
       isStreaming,
       hasVision: features.requirements.vision,
+      promptDigest: extractPromptDigest(request.messages) ?? undefined,
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);

@@ -124,6 +124,10 @@ export const usageLogs = sqliteTable(
     hasTools: integer("has_tools").default(0),
     hasVision: integer("has_vision").default(0),
 
+    // Prompt digest — last user message head (≤200 chars) for routing audit.
+    // NULL for probe requests / tool-result-only messages.
+    promptDigest: text("prompt_digest"),
+
     createdAt: text("created_at").notNull(),
   },
   (table) => [

@@ -31,6 +31,7 @@ export interface UsageLogEntry {
   isStreaming: boolean;
   hasTools: boolean;
   hasVision: boolean;
+  promptDigest: string | null;
   createdAt: string;
 }
 
@@ -97,6 +98,7 @@ export async function getUsageLogs(c: Context) {
     isStreaming: !!r.isStreaming,
     hasTools: !!r.hasTools,
     hasVision: !!r.hasVision,
+    promptDigest: r.promptDigest ?? null,
     createdAt: r.createdAt,
   }));
 

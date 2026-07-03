@@ -92,6 +92,7 @@ export async function runMigrations(): Promise<void> {
       is_streaming INTEGER DEFAULT 0,
       has_tools INTEGER DEFAULT 0,
       has_vision INTEGER DEFAULT 0,
+      prompt_digest TEXT,
       created_at TEXT NOT NULL
     )
   `);
@@ -102,6 +103,15 @@ export async function runMigrations(): Promise<void> {
   db.run(sql`
     CREATE INDEX IF NOT EXISTS idx_usage_created_at ON usage_logs(created_at)
   `);
+
+  // Add prompt_digest to pre-existing usage_logs tables (idempotent).
+  // SQLite lacks ADD COLUMN IF NOT EXISTS; probe pragma_table_info instead.
+  const hasPromptDigest = db.get(
+    sql`SELECT 1 FROM pragma_table_info('usage_logs') WHERE name = 'prompt_digest'`,
+  );
+  if (!hasPromptDigest) {
+    db.run(sql`ALTER TABLE usage_logs ADD COLUMN prompt_digest TEXT`);
+  }
 
   db.run(sql`
     CREATE TABLE IF NOT EXISTS provider_instances (

@@ -27,6 +27,7 @@ export interface LogUsageInput {
   isStreaming?: boolean;
   hasTools?: boolean;
   hasVision?: boolean;
+  promptDigest?: string;
 }
 
 export async function logUsage(input: LogUsageInput): Promise<void> {
@@ -52,6 +53,7 @@ export async function logUsage(input: LogUsageInput): Promise<void> {
     isStreaming: input.isStreaming ? 1 : 0,
     hasTools: input.hasTools ? 1 : 0,
     hasVision: input.hasVision ? 1 : 0,
+    promptDigest: input.promptDigest ?? null,
     createdAt: new Date().toISOString(),
   });
 }
