@@ -258,20 +258,15 @@ core routing/proxy work.
 
 Supported slots:
 
-- `FAST`: optional cheap and low-latency slot for simple chat. Initial model:
-  GLM-4.7-Flash. It is reserved for later local/cheap routing and is not
-  required for the first MVP run.
+- `FAST`: optional — reserved for later local/cheap routing. Does NOT participate
+  in auto-routing (simple requests fall back to BALANCED). Only callable via
+  explicit `minirouter/slot/fast`.
 - `BALANCED`: default workhorse for code, tools, and normal Agent steps.
   Initial model: DeepSeek V4 Flash.
 - `STRONG`: complex reasoning, hard coding, planning, and multi-step
   debugging. Initial model: GLM-5.2.
 - `VISION`: screenshots, images, and multimodal tasks. Initial model:
-  GLM-4.6V.
-
-Agent and code are not standalone slots in the MVP. They are routing signals:
-tool use or code-like work routes a request to at least `BALANCED`; complex
-planning or explicit reasoning upgrades it to `STRONG`. Until `FAST` is
-configured, simple text requests also use `BALANCED`.
+  GLM-4.6V (or equivalent vision-capable model).
 
 Each slot is configured with:
 
@@ -281,6 +276,8 @@ MINIROUTER_<SLOT>_API_KEY=...
 MINIROUTER_<SLOT>_MODEL=...
 MINIROUTER_<SLOT>_SUPPORTS_TOOLS=true | false
 MINIROUTER_<SLOT>_SUPPORTS_VISION=true | false
+MINIROUTER_<SLOT>_PROVIDER=openai-compatible | anthropic | (omit for auto)
+MINIROUTER_<SLOT>_CONTEXT_WINDOW=1048576
 ```
 
 `MINIROUTER_<SLOT>_PROVIDER` is optional. The default is `auto`, which means the
@@ -289,25 +286,112 @@ to `{BASE_URL}/chat/completions`; Anthropic Messages requests are sent to
 `{BASE_URL}/messages`. Set `PROVIDER=anthropic` only when a slot must always use
 the native Anthropic Messages API.
 
-Routing order:
+Upstream fetch timeout defaults to 180s and is configurable via
+`MINIROUTER_UPSTREAM_TIMEOUT_MS`.
+
+### 14-Dimension Rule Classifier
+
+The core of MiniRouter's auto-routing is a zero-cost rule-based classifier
+(~1ms, no external API calls). It scores the **user prompt only** (system
+prompts are excluded to avoid tool-definition keywords dominating the score)
+across 14 weighted dimensions, then maps the aggregate score to a tier.
+
+Each dimension returns a score in [-1, 1] based on keyword matches against
+multilingual keyword lists (EN, ZH, JA, RU, DE, ES, PT, KO, AR).
+
+| Dimension | Weight | What It Detects |
+|---|---|---|
+| tokenCount | 0.08 | Short (<50 tokens) vs long (>500 tokens) context |
+| codePresence | 0.15 | Programming keywords: `function`, `class`, `def`, `函数`, etc. |
+| reasoningMarkers | 0.18 | Logic/proof keywords: `prove`, `step by step`, `证明`, `逐步`, etc. |
+| technicalTerms | 0.10 | Architecture/infra: `algorithm`, `分布式`, `kubernetes`, etc. |
+| creativeMarkers | 0.05 | Creative writing: `story`, `诗`, `imagine`, `brainstorm`, etc. |
+| simpleIndicators | 0.02 | Simple queries: `what is`, `什么是`, `翻译`, `hello`, etc. |
+| multiStepPatterns | 0.12 | Multi-step patterns: `first.*then`, `step \d`, numbered lists |
+| questionComplexity | 0.05 | Number of question marks (>3 = complex) |
+| imperativeVerbs | 0.03 | Action verbs: `build`, `创建`, `deploy`, `配置`, etc. |
+| constraintCount | 0.04 | Constraints: `at most`, `不超过`, `maximum`, `budget`, etc. |
+| outputFormat | 0.03 | Format requirements: `json`, `表格`, `schema`, `csv`, etc. |
+| referenceComplexity | 0.02 | Cross-references: `above`, `上面`, `the docs`, `附件`, etc. |
+| negationComplexity | 0.01 | Negation: `don't`, `不要`, `never`, `avoid`, etc. |
+| agenticTask | 0.04 | Agent signals: `edit`, `fix`, `debug`, `修改`, `调试`, etc. |
+
+**Score → Tier mapping (weighted sum):**
+
+| Tier | Score Range | Example Requests |
+|---|---|---|
+| SIMPLE | < 0.0 | "what is photosynthesis", "translate to French" |
+| MEDIUM | 0.0 ~ 0.3 | "write a React component", "explain this algorithm" |
+| COMPLEX | 0.3 ~ 0.5 | "design a microservice architecture", "refactor this codebase" |
+| REASONING | > 0.5 | "prove this theorem step by step", "formal verification" |
+
+**Hard overrides (bypass scoring):**
+
+- 2+ reasoning keywords → REASONING (regardless of aggregate score)
+- >100k estimated tokens → COMPLEX (large context forces capability)
+- Structured output detected → minimum MEDIUM tier
+
+**Confidence calibration:** Sigmoid function maps distance from tier boundary to
+[0.5, 1.0] confidence. Below 0.7 → ambiguous → falls back to MEDIUM.
+
+### Agentic Mode Detection
+
+When tools are present in the request OR the agentic dimension score is ≥ 0.5,
+the router switches to `agenticTiers` (a separate tier config optimized for
+multi-step autonomous tasks with strong tool-calling support). In the MVP
+env-slot path, this translates to routing agentic requests to at least
+`BALANCED` (for SIMPLE/MEDIUM tier) or `STRONG` (for COMPLEX/REASONING tier).
+
+### Tier → Slot Mapping
+
+```
+vision request → VISION slot (always, regardless of tier)
+
+toolCalling / agentic + SIMPLE/MEDIUM → BALANCED
+toolCalling / agentic + COMPLEX/REASONING → STRONG
+
+SIMPLE (no tool/vision) → BALANCED (FAST is reserved, does not participate)
+MEDIUM → BALANCED
+COMPLEX → STRONG
+REASONING → STRONG
+```
+
+| Tier | No tool/vision | Has tool | Has vision |
+|---|---|---|---|
+| SIMPLE | BALANCED | BALANCED | VISION |
+| MEDIUM | BALANCED | BALANCED | VISION |
+| COMPLEX | STRONG | STRONG | VISION |
+| REASONING | STRONG | STRONG | VISION |
+
+### Explicit Slot Override
+
+Users can bypass auto-routing by specifying `minirouter/slot/balanced`,
+`minirouter/slot/strong`, `minirouter/slot/vision`, or `minirouter/slot/fast`.
+The router skips classification and uses the requested slot directly (after
+checking vision/tool capability gates).
+
+### Routing Flow Summary
 
 ```txt
-1. Accept either OpenAI Chat (`/v1/chat/completions`) or Anthropic Messages
-   (`/v1/messages`).
-2. Normalize the request internally for routing signals only.
-3. Extract requirements: tools, vision, JSON mode, context, agentic signals.
-4. Classify task tier with the existing rules classifier.
-5. Pick the best configured slot:
-   vision -> VISION
-   tool/agentic + simple/medium tier -> BALANCED
-   complex/reasoning tier -> STRONG
-   simple tier -> FAST if configured, otherwise BALANCED
-   medium tier -> BALANCED
-6. Forward the original request shape to the matching native upstream endpoint.
+1. Accept OpenAI Chat (/v1/chat/completions) or Anthropic Messages (/v1/messages)
+2. Normalize → CanonicalRequest (protocol-agnostic IR)
+3. Extract features: vision, tools, agentic, JSON mode, long context
+4. Explicit slot request? → skip to step 7 if yes
+5. 14-dimension classifier → SIMPLE/MEDIUM/COMPLEX/REASONING
+6. Pick slot:
+   vision → VISION
+   tool/agentic + SIMPLE/MEDIUM → BALANCED
+   tool/agentic + COMPLEX/REASONING → STRONG
+   SIMPLE/MEDIUM → BALANCED
+   COMPLEX/REASONING → STRONG
+7. Context Headroom optimization (optional, default: pass-through)
+8. Forward to upstream with model override + 180s timeout
+9. Parse usage (non-streaming: prompt_tokens/completion_tokens)
+10. Write to SQLite usage_logs + return upstream response
 ```
 
 If no slots are configured, both `/v1/chat/completions` and `/v1/messages`
-return an explicit configuration error. MiniRouter should not return a fake
+return an explicit 503 configuration error. MiniRouter should not return a fake
 successful chat completion when no upstream model is configured.
 
 For the first execution MVP, configure only these required slots:
@@ -315,7 +399,7 @@ For the first execution MVP, configure only these required slots:
 ```txt
 BALANCED = DeepSeek V4 Flash
 STRONG   = GLM-5.2
-VISION   = GLM-4.6V
+VISION   = GLM-4.6V (or equivalent vision-capable model)
 ```
 
 `FAST = GLM-4.7-Flash` can be added after the proxy path, logging, and fallback
@@ -377,25 +461,31 @@ correct, observable, and stable.
 
 ## Development Roadmap
 
-### Phase 1: Explainable Router MVP
+### Phase 1: Explainable Router MVP ✅ Done
 
-- OpenAI Chat canonical request normalization
-- feature extraction
-- DB-backed candidate loading
-- capability gate
-- `/debug/route`
-- unit tests for request normalization and route selection
+- [x] OpenAI Chat + Anthropic Messages canonical request normalization
+- [x] feature extraction (tools, vision, JSON, context, agentic)
+- [x] DB-backed candidate loading from model_scores table
+- [x] capability gate (8 hard filters)
+- [x] `/debug/route` (env-slot and DB modes)
+- [x] 14-dimension rule classifier (~1ms, zero-cost)
+- [x] unit tests for request normalization and route selection
 
-### Phase 2: Real Gateway Execution
+### Phase 2: Real Gateway Execution ✅ Done
 
-- OpenAI-compatible provider adapter
-- Anthropic Messages adapter
-- streaming transform
-- usage accounting
-- fallback retry
-- provider error normalization
+- [x] OpenAI-compatible provider adapter
+- [x] Anthropic Messages adapter
+- [x] ENV-driven model slots (fast/balanced/strong/vision)
+- [x] upstream fetch timeout (180s default)
+- [x] non-streaming usage parsing (prompt/completion/cache_read tokens)
+- [x] usage log query APIs (GET /api/usage/logs, GET /api/usage/summary)
+- [x] auto-migration + solo user bootstrap on startup
+- [x] Context Headroom optimization layer
+- [x] structured error responses (503 configuration, 502 provider)
+- [ ] streaming usage parsing (SSE last-event extraction)
+- [ ] fallback retry (slot failure → next slot)
 
-### Phase 3: Agent Reliability
+### Phase 3: Agent Reliability (planned)
 
 - session sticky model selection
 - tool-call stability metrics
@@ -403,7 +493,7 @@ correct, observable, and stable.
 - provider health checks
 - per-user and per-team policy overrides
 
-### Phase 4: Data-Driven Routing
+### Phase 4: Data-Driven Routing (planned)
 
 - collect route outcomes
 - analyze retries and user overrides

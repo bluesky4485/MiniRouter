@@ -145,32 +145,36 @@ export async function anthropicMessages(c: Context) {
 
   // For non-streaming responses, try to parse usage from the upstream JSON.
   const isStreaming = body.stream === true;
+  let inputTokens = configured.features.estimatedInputTokens;
   let outputTokens = 0;
 
   if (!isStreaming && upstream.ok) {
     const usage = await parseAnthropicUsage(upstream);
     if (usage) {
+      inputTokens = usage.promptTokens;
       outputTokens = usage.completionTokens;
     }
   }
 
-  logUsage({
-    userId: auth.userId,
-    apiKeyId: auth.apiKeyId,
-    requestId,
-    model: configured.slot.model,
-    tier: configured.tier,
-    strategy: "env-slot-native-anthropic",
-    inputTokens: configured.features.estimatedInputTokens,
-    outputTokens,
-    costUsd: 0,
-    status: upstream.ok ? "success" : "error",
-    hasTools: configured.features.requirements.toolCalling,
-    isStreaming,
-    hasVision: configured.features.requirements.vision,
-  }).catch(() => {
-    // Log failure is non-fatal
-  });
+  try {
+    await logUsage({
+      userId: auth.userId,
+      apiKeyId: auth.apiKeyId,
+      requestId,
+      model: configured.slot.model,
+      tier: configured.tier,
+      strategy: "env-slot-native-anthropic",
+      inputTokens,
+      outputTokens,
+      costUsd: 0,
+      status: upstream.ok ? "success" : "error",
+      hasTools: configured.features.requirements.toolCalling,
+      isStreaming,
+      hasVision: configured.features.requirements.vision,
+    });
+  } catch (err) {
+    console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);
+  }
 
   return toMutableUpstreamResponse(upstream);
 }

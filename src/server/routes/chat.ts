@@ -258,36 +258,40 @@ export async function chatCompletions(c: Context) {
   // For non-streaming responses, try to parse usage from the upstream JSON.
   // Streaming responses still log estimated input tokens only.
   const isStreaming = body.stream === true;
+  let inputTokens = features.estimatedInputTokens;
   let outputTokens = 0;
   let cacheReadTokens = 0;
 
   if (!isStreaming && upstream.ok) {
     const usage = await parseOpenAIUsage(upstream);
     if (usage) {
+      inputTokens = usage.promptTokens;
       outputTokens = usage.completionTokens;
       cacheReadTokens = usage.cacheReadTokens;
     }
   }
 
-  logUsage({
-    userId: auth.userId,
-    apiKeyId: auth.apiKeyId,
-    requestId,
-    model: configured.slot.model,
-    tier: configured.tier,
-    profile: routingProfile(modelParam, c.req.header("x-routing-profile")),
-    strategy: "env-slot-native-openai-chat",
-    inputTokens: features.estimatedInputTokens,
-    outputTokens,
-    cacheReadTokens,
-    costUsd: 0,
-    status: upstream.ok ? "success" : "error",
-    hasTools: features.requirements.toolCalling,
-    isStreaming,
-    hasVision: features.requirements.vision,
-  }).catch(() => {
-    // Log failure is non-fatal.
-  });
+  try {
+    await logUsage({
+      userId: auth.userId,
+      apiKeyId: auth.apiKeyId,
+      requestId,
+      model: configured.slot.model,
+      tier: configured.tier,
+      profile: routingProfile(modelParam, c.req.header("x-routing-profile")),
+      strategy: "env-slot-native-openai-chat",
+      inputTokens,
+      outputTokens,
+      cacheReadTokens,
+      costUsd: 0,
+      status: upstream.ok ? "success" : "error",
+      hasTools: features.requirements.toolCalling,
+      isStreaming,
+      hasVision: features.requirements.vision,
+    });
+  } catch (err) {
+    console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);
+  }
 
   return toMutableUpstreamResponse(upstream);
 }

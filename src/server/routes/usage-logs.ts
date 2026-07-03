@@ -44,7 +44,24 @@ export async function getUsageLogs(c: Context) {
   const to = c.req.query("to");
   const status = c.req.query("status");
   const model = c.req.query("model");
-  const userId = c.req.query("user_id") ?? auth.userId;
+
+  // Only admins can query other users' logs. Regular users can only query their own.
+  const isAdmin = auth.role === "admin" || auth.role === "superadmin";
+  const requestedUserId = c.req.query("user_id");
+
+  if (!isAdmin && requestedUserId) {
+    return c.json(
+      {
+        error: {
+          message: "Only admins can query other users' logs",
+          type: "authorization_error",
+        },
+      },
+      403,
+    );
+  }
+
+  const userId = requestedUserId ?? auth.userId;
 
   const conditions = [eq(usageLogs.userId, userId)];
   if (from) conditions.push(gte(usageLogs.createdAt, from));
