@@ -44,6 +44,15 @@ function normalizeContent(content: OpenAIChatMessage["content"]): CanonicalConte
       return [{ type: "image", url }];
     }
 
+    if (part["type"] === "video_url") {
+      const video = part["video_url"];
+      const url =
+        typeof video === "object" && video !== null && "url" in video
+          ? String((video as { url?: unknown }).url ?? "")
+          : undefined;
+      return [{ type: "video", url }];
+    }
+
     if (part["type"] === "input_audio") {
       return [{ type: "audio" }];
     }

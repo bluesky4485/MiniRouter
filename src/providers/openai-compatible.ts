@@ -1,4 +1,6 @@
 import type { ModelSlot } from "./types.js";
+import { adaptOpenAICompatibleBody } from "./client-adapter.js";
+import { debugLog } from "../debug.js";
 
 type FetchLike = typeof fetch;
 
@@ -22,10 +24,15 @@ export async function executeOpenAICompatibleChat(
   slot: ModelSlot,
   fetchImpl: FetchLike = fetch,
 ): Promise<Response> {
-  const upstreamBody = {
-    ...body,
+  // Client adapter — fix known client issues (e.g. Claude Code empty image_url.detail)
+  const adapted = adaptOpenAICompatibleBody(body);
+
+  const upstreamBody: Record<string, unknown> = {
+    ...adapted,
     model: slot.model,
   };
+
+  debugLog("openai-chat:upstream body", upstreamBody);
 
   return fetchImpl(chatCompletionsUrl(slot.baseUrl), {
     method: "POST",

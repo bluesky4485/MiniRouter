@@ -1,4 +1,6 @@
 import type { ModelSlot } from "./types.js";
+import { adaptOpenAICompatibleBody } from "./client-adapter.js";
+import { debugLog, debugLogResponse } from "../debug.js";
 
 type FetchLike = typeof fetch;
 
@@ -22,12 +24,18 @@ export async function executeAnthropicMessages(
   slot: ModelSlot,
   fetchImpl: FetchLike = fetch,
 ): Promise<Response> {
+  // Client adapter — Claude Code sends OpenAI-style image_url blocks even on
+  // the /v1/messages endpoint. Fix empty detail so upstreams don't 400.
+  const adapted = adaptOpenAICompatibleBody(body);
+
   const upstreamBody: Record<string, unknown> = {
-    ...body,
+    ...adapted,
     model: slot.model,
   };
 
-  return fetchImpl(messagesUrl(slot.baseUrl), {
+  debugLog(`anthropic:upstream body`, upstreamBody);
+
+  const res = await fetchImpl(messagesUrl(slot.baseUrl), {
     method: "POST",
     headers: {
       "x-api-key": slot.apiKey,
@@ -37,4 +45,17 @@ export async function executeAnthropicMessages(
     body: JSON.stringify(upstreamBody),
     signal: AbortSignal.timeout(readTimeout()),
   });
+
+  // Log upstream error responses for debugging
+  if (!res.ok) {
+    const errorText = await res.text();
+    debugLogResponse("anthropic:upstream", res.status, errorText);
+    // Return the error response as-is
+    return new Response(errorText, {
+      status: res.status,
+      headers: res.headers,
+    });
+  }
+
+  return res;
 }

@@ -63,7 +63,8 @@ export function extractRoutingFeatures(request: CanonicalRequest): RoutingFeatur
       toolCalling,
       structuredOutput: jsonMode,
       jsonMode,
-      vision: hasVision,
+      // Treat video/audio as vision — multimodal requests need the vision slot
+      vision: hasVision || hasVideo || hasAudio,
       audio: hasAudio,
       video: hasVideo,
       longContext,

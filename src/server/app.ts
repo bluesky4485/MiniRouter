@@ -16,6 +16,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { debugLogMiddleware } from "./middleware/debug.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/ratelimit.js";
 import { chatCompletions } from "./routes/chat.js";
