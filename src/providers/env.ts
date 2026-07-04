@@ -72,8 +72,13 @@ export function pickSlotForFeatures(
     };
   },
 ): ModelSlot {
+  if (input.requirements.vision) {
+    const visionSlot = slots.vision;
+    if (visionSlot) return visionSlot;
+    throw new Error("No configured vision slot can satisfy the request");
+  }
+
   const preferred: ModelSlotName[] = [];
-  if (input.requirements.vision) preferred.push("vision");
   if (input.requirements.toolCalling || input.requirements.agentic) {
     preferred.push(input.tier === "COMPLEX" || input.tier === "REASONING" ? "strong" : "balanced");
   }
@@ -82,7 +87,6 @@ export function pickSlotForFeatures(
   for (const slot of preferred) {
     const candidate = slots[slot];
     if (!candidate) continue;
-    if (input.requirements.vision && !candidate.supportsVision) continue;
     if (input.requirements.toolCalling && !candidate.supportsTools) continue;
     return candidate;
   }

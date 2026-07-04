@@ -53,15 +53,19 @@ export function debugLog(label: string, body: unknown): void {
  * for after-the-fact "prompt vs routing decision" comparison without dumping
  * full content (which can be huge and contain tool results / images).
  *
- * Format: array[N] roles=user,assistant,user | lastUser="前200字..."
+ * Format: array[N] roles=user,assistant,user | lastUser="前200字..." | blockTypes=text,image_url
+ *
+ * blockTypes lists the content block types of the last user message, so we can
+ * see whether the client sends Anthropic-native "image" or OpenAI "image_url".
  */
 function summarizeMessages(messages: unknown): string {
   if (!Array.isArray(messages)) return `array[?]`;
   const roles = messages
     .map((m) => (typeof m === "object" && m !== null ? (m as Record<string, unknown>).role : "?"))
     .join(",");
-  // Find last user message text
+  // Find last user message — capture both text and block types
   let lastUserText = "";
+  let blockTypes: string[] = [];
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
     if (typeof m !== "object" || m === null) continue;
@@ -70,15 +74,19 @@ function summarizeMessages(messages: unknown): string {
     const content = rec.content;
     if (typeof content === "string") {
       lastUserText = content;
+      blockTypes = ["text(str)"];
       break;
     }
     if (Array.isArray(content)) {
       const texts: string[] = [];
+      const types: string[] = [];
       for (const part of content) {
         if (typeof part !== "object" || part === null) continue;
         const pr = part as Record<string, unknown>;
+        if (pr.type) types.push(String(pr.type));
         if (pr.type === "text" && typeof pr.text === "string") texts.push(pr.text);
       }
+      blockTypes = types;
       if (texts.length > 0) {
         lastUserText = texts.join("\n");
         break;
@@ -86,7 +94,8 @@ function summarizeMessages(messages: unknown): string {
     }
   }
   const head = lastUserText.slice(0, 200).replace(/\s+/g, " ").trim();
-  return `array[${messages.length}] roles=${roles} | lastUser="${head}${lastUserText.length > 200 ? "…" : ""}"`;
+  const typesStr = blockTypes.length ? ` | blockTypes=${blockTypes.join(",")}` : "";
+  return `array[${messages.length}] roles=${roles}${typesStr} | lastUser="${head}${lastUserText.length > 200 ? "…" : ""}"`;
 }
 
 /**

@@ -52,4 +52,70 @@ describe("executeAnthropicMessages", () => {
     expect(body.messages).toEqual([{ role: "user", content: "hello" }]);
     expect(body.tools).toEqual([{ name: "save_result", input_schema: { type: "object" } }]);
   });
+
+  it("strips tools and tool_choice when the selected slot does not support tools", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ id: "msg_test", content: [{ type: "text", text: "ok" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    await executeAnthropicMessages(
+      {
+        model: "minirouter/auto",
+        messages: [{ role: "user", content: "describe this image" }],
+        tools: [{ name: "read_file", input_schema: { type: "object" } }],
+        tool_choice: { type: "auto" },
+      },
+      {
+        slot: "vision",
+        provider: "anthropic",
+        baseUrl: "https://api.anthropic.com/v1",
+        apiKey: "secret",
+        model: "vision-model",
+        supportsTools: false,
+        supportsVision: true,
+      },
+      fetchImpl,
+    );
+
+    const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse(String(init.body));
+    expect(body.model).toBe("vision-model");
+    expect(body.tools).toBeUndefined();
+    expect(body.tool_choice).toBeUndefined();
+  });
+
+  it("caps max_tokens to the selected slot context window", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ id: "msg_test", content: [{ type: "text", text: "ok" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    await executeAnthropicMessages(
+      {
+        model: "minirouter/auto",
+        messages: [{ role: "user", content: "hello" }],
+        max_tokens: 64000,
+      },
+      {
+        slot: "vision",
+        provider: "anthropic",
+        baseUrl: "https://api.anthropic.com/v1",
+        apiKey: "secret",
+        model: "vision-model",
+        supportsTools: false,
+        supportsVision: true,
+        contextWindowTokens: 8192,
+      },
+      fetchImpl,
+    );
+
+    const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse(String(init.body));
+    expect(body.max_tokens).toBe(8192);
+  });
 });

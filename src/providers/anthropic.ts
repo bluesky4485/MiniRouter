@@ -19,6 +19,33 @@ function messagesUrl(baseUrl: string): string {
   return `${trimmed}/messages`;
 }
 
+function removeUnsupportedTools(body: Record<string, unknown>, slot: ModelSlot): Record<string, unknown> {
+  if (slot.supportsTools) return body;
+  if (!("tools" in body) && !("tool_choice" in body)) return body;
+
+  const copy = { ...body };
+  delete copy["tools"];
+  delete copy["tool_choice"];
+  console.log(
+    `[provider-adapter] strip tools/tool_choice for slot=${slot.slot} model=${slot.model} supportsTools=false`,
+  );
+  return copy;
+}
+
+function capOutputTokens(body: Record<string, unknown>, slot: ModelSlot): Record<string, unknown> {
+  const cap = slot.contextWindowTokens;
+  if (!cap || cap <= 0) return body;
+
+  const value = body["max_tokens"];
+  if (typeof value !== "number" || value <= cap) return body;
+
+  const copy = { ...body, max_tokens: cap };
+  console.log(
+    `[provider-adapter] cap max_tokens ${value}->${cap} for slot=${slot.slot} model=${slot.model}`,
+  );
+  return copy;
+}
+
 export async function executeAnthropicMessages(
   body: Record<string, unknown>,
   slot: ModelSlot,
@@ -26,7 +53,7 @@ export async function executeAnthropicMessages(
 ): Promise<Response> {
   // Client adapter — Claude Code sends OpenAI-style image_url blocks even on
   // the /v1/messages endpoint. Fix empty detail so upstreams don't 400.
-  const adapted = adaptOpenAICompatibleBody(body);
+  const adapted = capOutputTokens(removeUnsupportedTools(adaptOpenAICompatibleBody(body), slot), slot);
 
   const upstreamBody: Record<string, unknown> = {
     ...adapted,

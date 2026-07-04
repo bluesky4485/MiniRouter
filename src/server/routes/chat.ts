@@ -81,7 +81,7 @@ export function selectConfiguredSlotForChat(
     if (features.requirements.vision && !explicitSlot.supportsVision) {
       throw new Error("Explicit slot does not support vision");
     }
-    if (features.requirements.toolCalling && !explicitSlot.supportsTools) {
+    if (!features.requirements.vision && features.requirements.toolCalling && !explicitSlot.supportsTools) {
       throw new Error("Explicit slot does not support tools");
     }
     return {

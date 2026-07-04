@@ -37,8 +37,9 @@ function hasJsonMode(responseFormat: unknown, promptText: string): boolean {
 export function extractRoutingFeatures(request: CanonicalRequest): RoutingFeatures {
   const promptText = textFromRequest(request);
   const estimatedInputTokens = Math.ceil(promptText.length / 4);
+  // Check both Anthropic-native "image" and OpenAI-style "image_url" (Claude Code sends both).
   const hasVision = request.messages.some((message) =>
-    message.content.some((block) => block.type === "image"),
+    message.content.some((block) => (block as { type: string }).type === "image" || (block as { type: string }).type === "image_url"),
   );
   const hasAudio = request.messages.some((message) =>
     message.content.some((block) => block.type === "audio"),

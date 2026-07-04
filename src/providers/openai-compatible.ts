@@ -19,13 +19,44 @@ function chatCompletionsUrl(baseUrl: string): string {
   return `${trimmed}/chat/completions`;
 }
 
+function removeUnsupportedTools(body: Record<string, unknown>, slot: ModelSlot): Record<string, unknown> {
+  if (slot.supportsTools) return body;
+  if (!("tools" in body) && !("tool_choice" in body)) return body;
+
+  const copy = { ...body };
+  delete copy["tools"];
+  delete copy["tool_choice"];
+  console.log(
+    `[provider-adapter] strip tools/tool_choice for slot=${slot.slot} model=${slot.model} supportsTools=false`,
+  );
+  return copy;
+}
+
+function capOutputTokens(body: Record<string, unknown>, slot: ModelSlot): Record<string, unknown> {
+  const cap = slot.contextWindowTokens;
+  if (!cap || cap <= 0) return body;
+
+  let copy: Record<string, unknown> | undefined;
+  for (const key of ["max_tokens", "max_completion_tokens"]) {
+    const value = body[key];
+    if (typeof value === "number" && value > cap) {
+      copy ??= { ...body };
+      copy[key] = cap;
+      console.log(
+        `[provider-adapter] cap ${key} ${value}->${cap} for slot=${slot.slot} model=${slot.model}`,
+      );
+    }
+  }
+  return copy ?? body;
+}
+
 export async function executeOpenAICompatibleChat(
   body: Record<string, unknown>,
   slot: ModelSlot,
   fetchImpl: FetchLike = fetch,
 ): Promise<Response> {
   // Client adapter — fix known client issues (e.g. Claude Code empty image_url.detail)
-  const adapted = adaptOpenAICompatibleBody(body);
+  const adapted = capOutputTokens(removeUnsupportedTools(adaptOpenAICompatibleBody(body), slot), slot);
 
   const upstreamBody: Record<string, unknown> = {
     ...adapted,

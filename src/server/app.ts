@@ -47,6 +47,7 @@ export function createApp(): Hono {
   // Global middleware
   app.use("*", cors());
   app.use("*", logger());
+  app.use("*", debugLogMiddleware);
 
   // ─── Public routes (no auth required) ───────────────────────────
 

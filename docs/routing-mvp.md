@@ -26,9 +26,35 @@ MINIROUTER_STRONG_SUPPORTS_VISION=false
 MINIROUTER_VISION_BASE_URL=https://...
 MINIROUTER_VISION_API_KEY=...
 MINIROUTER_VISION_MODEL=...
-MINIROUTER_VISION_SUPPORTS_TOOLS=true
+MINIROUTER_VISION_PROVIDER=openai-compatible
+MINIROUTER_VISION_SUPPORTS_TOOLS=false
 MINIROUTER_VISION_SUPPORTS_VISION=true
 ```
+
+For MiniCPM-V-4.6-Thinking on vLLM, configure `VISION_PROVIDER=openai-compatible`.
+MiniRouter will keep Anthropic Messages ingress for clients such as Claude Code,
+then adapt only the selected VISION request to the model's OpenAI-compatible
+upstream shape.
+
+Recommended vLLM launch shape for visual understanding:
+
+```bash
+VLLM_USE_MODELSCOPE=true vllm serve openbmb/MiniCPM-V-4.6-Thinking \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --default-chat-template-kwargs '{"enable_thinking": true}'
+```
+
+MiniCPM-V official examples include a tool-calling demo, but the documented
+fallback may emit a `<tool_call>` block inside `content` rather than OpenAI
+structured `tool_calls`. For Agent clients such as Codex and Claude Code, keep
+`MINIROUTER_VISION_SUPPORTS_TOOLS=false` until the exact serving stack has
+verified structured tool parsing.
+
+For native performance, keep `MINIROUTER_VISION_CONTEXT_WINDOW` aligned with
+the upstream vLLM `--max-model-len`. If the server is launched with a larger
+context window, raise the env value too. MiniRouter should not enable Headroom
+for this slot.
 
 `FAST` is optional. Leave it unset until a cheap local or hosted fast model is
 ready. Simple requests fall back to `BALANCED`.
@@ -83,4 +109,3 @@ Invoke-RestMethod http://localhost:8402/v1/chat/completions `
 
 Use `minirouter/slot/strong` or `minirouter/slot/vision` when you want to force a
 specific configured slot.
-

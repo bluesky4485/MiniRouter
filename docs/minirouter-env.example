@@ -34,12 +34,21 @@ MINIROUTER_STRONG_SUPPORTS_VISION=false
 MINIROUTER_STRONG_CONTEXT_WINDOW=1000000
 
 # VISION: screenshots, images, multimodal tasks.
+# MiniCPM-V-4.6-Thinking on vLLM only exposes an OpenAI-compatible API.
+# Treat this slot as visual understanding first. Official tool examples may
+# return <tool_call> text in content, not guaranteed OpenAI structured tool_calls.
+# Keep SUPPORTS_TOOLS=false unless the serving stack has verified structured
+# tool_call parsing for your Agent client.
+#   vllm serve openbmb/MiniCPM-V-4.6-Thinking --default-chat-template-kwargs '{"enable_thinking": true}'
+# For native performance, raise vLLM --max-model-len and this CONTEXT_WINDOW
+# together as GPU memory allows. Do not set this lower than the upstream service.
+MINIROUTER_VISION_PROVIDER=openai-compatible
 MINIROUTER_VISION_BASE_URL=https://api.example.com/v1
 MINIROUTER_VISION_API_KEY=replace-me
-MINIROUTER_VISION_MODEL=GLM-4.6V
-MINIROUTER_VISION_SUPPORTS_TOOLS=true
+MINIROUTER_VISION_MODEL=openbmb/MiniCPM-V-4.6-Thinking
+MINIROUTER_VISION_SUPPORTS_TOOLS=false
 MINIROUTER_VISION_SUPPORTS_VISION=true
-MINIROUTER_VISION_CONTEXT_WINDOW=128000
+MINIROUTER_VISION_CONTEXT_WINDOW=16384
 
 # Optional Headroom context optimization.
 # Default is disabled and requests are passed through unchanged.
