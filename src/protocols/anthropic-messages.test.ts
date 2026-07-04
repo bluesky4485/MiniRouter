@@ -35,5 +35,32 @@ describe("normalizeAnthropicMessagesRequest", () => {
     expect(features.requirements.vision).toBe(true);
     expect(features.requirements.toolCalling).toBe(true);
   });
+
+  it("normalizes native Anthropic video blocks for routing", () => {
+    const request = normalizeAnthropicMessagesRequest({
+      model: "minirouter/auto",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Summarize this video." },
+            {
+              type: "video",
+              source: {
+                type: "base64",
+                media_type: "video/mp4",
+                data: "abc",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const features = extractRoutingFeatures(request);
+
+    expect(features.requirements.video).toBe(true);
+    expect(features.requirements.vision).toBe(true);
+  });
 });
 

@@ -12,6 +12,7 @@ import { executeOpenAICompatibleChat } from "../../providers/openai-compatible.j
 import {
   adaptAnthropicMessagesToMiniCpmVisionOpenAI,
   adaptMiniCpmVisionOpenAIResponseToAnthropic,
+  materializeLocalMediaReferencesWithDiagnostics,
 } from "../../providers/client-adapter.js";
 import type { ModelSlot } from "../../providers/types.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
@@ -88,12 +89,18 @@ function stripImages(body: Record<string, unknown>, observation: string): Record
       observationInjected = true;
       textBlocks.push({
         type: "text",
-        text: `[视觉分析结果]
-以下是对用户分享图片的视觉观察（由视觉模块自动生成）：
+        text: `[视觉工具观察记录]
+以下内容是视觉模型作为“LLM 的眼睛”对用户图片/视频生成的观察记录，不是最终答案：
 
 ${observation}
 
-[说明] 以上为视觉模块的分析结果。请基于这些观察回答用户问题，并结合你的知识进行推理和整合。`,
+[使用要求]
+- 请保留用户原始问题的意图，基于以上视觉观察继续完成任务。
+- 如果用户要求总结，请提炼主题、结构、阶段、关键信息和结论。
+- 如果用户要求 OCR/提取，请整理可见文字、数字、表格、标签和标题。
+- 如果用户要求分析截图/报错/界面，请定位界面状态、异常、可能原因和下一步建议。
+- 如果用户要求对比/找问题，请指出差异、缺口、风险和不确定处。
+- 不要再声称无法查看图片或视频；只有当观察记录明确不足时，才说明缺少哪些视觉信息。`,
       });
     }
     return { ...record, content: textBlocks };
@@ -141,11 +148,20 @@ async function preprocessVision(
       console.error(`[MiniRouter] vision preprocessing upstream error: ${response.status}`);
       return null;
     }
-    const json = await response.json() as Record<string, unknown>;
-    const choices = json.choices as Array<Record<string, unknown>> | undefined;
-    const content = choices?.[0]?.message as Record<string, unknown> | undefined;
-    const text = typeof content?.content === "string" ? content.content : "";
-    return text || null;
+    try {
+      const json = await response.json() as Record<string, unknown>;
+      const choices = json.choices as Array<Record<string, unknown>> | undefined;
+      const content = choices?.[0]?.message as Record<string, unknown> | undefined;
+      const text = typeof content?.content === "string" ? content.content : "";
+      return text || null;
+    } catch (parseError) {
+      const contentType = response.headers.get("content-type") ?? "unknown";
+      const preview = await response.clone().text().then((t) => t.slice(0, 200)).catch(() => "(unreadable)");
+      console.error(
+        `[MiniRouter] vision preprocessing json parse failed: content-type=${contentType}, preview=${preview}`,
+      );
+      return null;
+    }
   } catch (e) {
     console.error("[MiniRouter] vision preprocessing failed:", (e as Error).message);
     return null;
@@ -268,6 +284,13 @@ export async function anthropicMessages(c: Context) {
   const auth = c.get("auth") as AuthResult;
   let body = await c.req.json();
   const requestId = randomUUID();
+  const localMedia = materializeLocalMediaReferencesWithDiagnostics(body, "anthropic-messages");
+  body = localMedia.body;
+  if (localMedia.status !== "no_path" && localMedia.status !== "no_text" && localMedia.status !== "no_messages") {
+    console.error(
+      `[MiniRouter] local media materialization status=${localMedia.status} path=${localMedia.filePath ?? "n/a"} bytes=${localMedia.bytes ?? "n/a"}`,
+    );
+  }
 
   // ─── Vision preprocessing ──────────────────────────────────────────
   // auto mode: strip images, call MiniCPM-V, inject observation,
@@ -340,7 +363,7 @@ export async function anthropicMessages(c: Context) {
       status: upstream.ok ? "success" : "error",
       hasTools: configured.features.requirements.toolCalling,
       isStreaming,
-      hasVision: configured.features.requirements.vision,
+      hasVision: hadVision || configured.features.requirements.vision,
       promptDigest: promptDigest ?? undefined,
     });
   } catch (err) {

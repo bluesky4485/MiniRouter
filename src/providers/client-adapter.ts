@@ -1,3 +1,6 @@
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { extname } from "node:path";
+
 /**
  * Client Adapter — 客户端兼容性适配层
  *
@@ -91,6 +94,211 @@ const adapters = [fixEmptyImageDetail];
  */
 export function adaptOpenAICompatibleBody(body: Record<string, unknown>): Record<string, unknown> {
   return adapters.reduce((b, adapter) => adapter(b), body);
+}
+
+const LOCAL_MEDIA_MIME: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".mp4": "video/mp4",
+  ".mov": "video/quicktime",
+  ".m4v": "video/mp4",
+  ".webm": "video/webm",
+  ".mkv": "video/x-matroska",
+};
+
+type LocalMediaProtocol = "anthropic-messages" | "openai-chat";
+type LocalMediaStatus =
+  | "attached"
+  | "already_has_media"
+  | "no_messages"
+  | "no_text"
+  | "no_path"
+  | "path_not_found"
+  | "unsupported_type"
+  | "not_file"
+  | "too_large"
+  | "read_failed";
+
+export type LocalMediaMaterializationResult = {
+  body: Record<string, unknown>;
+  status: LocalMediaStatus;
+  filePath?: string;
+  bytes?: number;
+  error?: string;
+};
+
+function localMediaMaxBytes(): number {
+  const raw = Number(process.env["MINIROUTER_LOCAL_MEDIA_MAX_BYTES"]);
+  if (Number.isFinite(raw) && raw > 0) return raw;
+  return 256 * 1024 * 1024;
+}
+
+function hasClientVisionContent(messages: unknown): boolean {
+  if (!Array.isArray(messages)) return false;
+  return messages.some((message) => {
+    if (typeof message !== "object" || message === null) return false;
+    const content = (message as Record<string, unknown>)["content"];
+    return Array.isArray(content) && content.some(isVisionPart);
+  });
+}
+
+function extractTextFromContent(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((part) => {
+      if (typeof part !== "object" || part === null) return "";
+      const record = part as Record<string, unknown>;
+      return record["type"] === "text" && typeof record["text"] === "string" ? record["text"] : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function extractLocalMediaPath(text: string): { filePath?: string; status: LocalMediaStatus } {
+  const pattern =
+    /@?"([^"]+\.(?:png|jpe?g|webp|gif|mp4|mov|m4v|webm|mkv))"|([A-Za-z]:\\[^\r\n"'<>]+\.(?:png|jpe?g|webp|gif|mp4|mov|m4v|webm|mkv))|((?:\/[^\s"'<>]+)+\.(?:png|jpe?g|webp|gif|mp4|mov|m4v|webm|mkv))/gi;
+
+  let sawCandidate = false;
+  for (const match of text.matchAll(pattern)) {
+    const candidate = match[1] ?? match[2] ?? match[3];
+    if (!candidate) continue;
+    sawCandidate = true;
+    if (!LOCAL_MEDIA_MIME[extname(candidate).toLowerCase()]) {
+      return { filePath: candidate, status: "unsupported_type" };
+    }
+    if (!existsSync(candidate)) {
+      return { filePath: candidate, status: "path_not_found" };
+    }
+    return { filePath: candidate, status: "attached" };
+  }
+
+  return { status: sawCandidate ? "unsupported_type" : "no_path" };
+}
+
+function localMediaBlock(
+  filePath: string,
+  protocol: LocalMediaProtocol,
+): { block?: Record<string, unknown>; status: LocalMediaStatus; bytes?: number; error?: string } {
+  const mediaType = LOCAL_MEDIA_MIME[extname(filePath).toLowerCase()];
+  if (!mediaType) return { status: "unsupported_type" };
+
+  const stat = statSync(filePath);
+  if (!stat.isFile()) return { status: "not_file" };
+  if (stat.size > localMediaMaxBytes()) {
+    return { status: "too_large", bytes: stat.size };
+  }
+
+  try {
+    const data = readFileSync(filePath).toString("base64");
+    const isVideo = mediaType.startsWith("video/");
+    if (protocol === "openai-chat") {
+      const type = isVideo ? "video_url" : "image_url";
+      return {
+        status: "attached",
+        bytes: stat.size,
+        block: {
+          type,
+          [type]: { url: `data:${mediaType};base64,${data}` },
+        },
+      };
+    }
+
+    return {
+      status: "attached",
+      bytes: stat.size,
+      block: {
+        type: isVideo ? "video" : "image",
+        source: {
+          type: "base64",
+          media_type: mediaType,
+          data,
+        },
+      },
+    };
+  } catch (error) {
+    return { status: "read_failed", bytes: stat.size, error: (error as Error).message };
+  }
+}
+
+/**
+ * [Adapter] materializeLocalMediaReferences
+ *
+ * Scope: local MVP convenience only. If the client already sends native
+ * image/video blocks, this adapter returns the original body unchanged. If a
+ * local file path is present only as text, it appends an Anthropic-native media
+ * block so the normal vision preprocessing path can run.
+ */
+export function materializeLocalMediaReferencesWithDiagnostics(
+  body: Record<string, unknown>,
+  protocol: LocalMediaProtocol = "anthropic-messages",
+): LocalMediaMaterializationResult {
+  if (hasClientVisionContent(body["messages"])) return { body, status: "already_has_media" };
+  const messages = body["messages"];
+  if (!Array.isArray(messages)) return { body, status: "no_messages" };
+
+  let sawText = false;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (typeof message !== "object" || message === null) continue;
+    const record = message as Record<string, unknown>;
+    const text = extractTextFromContent(record["content"]);
+    if (!text) continue;
+    sawText = true;
+
+    const pathResult = extractLocalMediaPath(text);
+    if (!pathResult.filePath) continue;
+    if (pathResult.status !== "attached") {
+      console.error(`[client-adapter] localMediaReference skipped status=${pathResult.status} path=${pathResult.filePath}`);
+      return { body, status: pathResult.status, filePath: pathResult.filePath };
+    }
+
+    try {
+      const media = localMediaBlock(pathResult.filePath, protocol);
+      if (!media.block) {
+        console.error(
+          `[client-adapter] localMediaReference skipped status=${media.status} path=${pathResult.filePath} bytes=${media.bytes ?? "unknown"}`,
+        );
+        return {
+          body,
+          status: media.status,
+          filePath: pathResult.filePath,
+          bytes: media.bytes,
+          error: media.error,
+        };
+      }
+      const nextContent = Array.isArray(record["content"])
+        ? [...record["content"], media.block]
+        : [{ type: "text", text }, media.block];
+      const nextMessages = [...messages];
+      nextMessages[i] = { ...record, content: nextContent };
+      console.error(
+        `[client-adapter] localMediaReference -> ${protocol} media block path=${pathResult.filePath} bytes=${media.bytes ?? "unknown"}`,
+      );
+      return {
+        body: { ...body, messages: nextMessages },
+        status: "attached",
+        filePath: pathResult.filePath,
+        bytes: media.bytes,
+      };
+    } catch (error) {
+      console.error(`[client-adapter] localMediaReference failed: ${(error as Error).message}`);
+      return { body, status: "read_failed", filePath: pathResult.filePath, error: (error as Error).message };
+    }
+  }
+
+  return { body, status: sawText ? "no_path" : "no_text" };
+}
+
+export function materializeLocalMediaReferences(
+  body: Record<string, unknown>,
+  protocol: LocalMediaProtocol = "anthropic-messages",
+): Record<string, unknown> {
+  return materializeLocalMediaReferencesWithDiagnostics(body, protocol).body;
 }
 
 function truncateText(text: string, maxChars: number): string {
@@ -264,20 +472,21 @@ function selectMiniCpmVisionPrompt(messages: unknown): Array<Record<string, unkn
  * adapter pipeline because it translates Anthropic content blocks into the
  * specific content part set accepted by the MiniCPM-V serving stack.
  */
+const DEFAULT_VISION_OBSERVER_PROMPT =
+  "你是 LLM 的眼睛，是中文多模态内容观察员。请只基于用户提供的图片或视频内容输出高密度观察记录，不要输出思考过程，不要代替最终 LLM 做泛化结论。你的目标是按用户任务补足视觉证据：如果用户要总结，请提供主题、事件、阶段和关键信息；如果用户要 OCR/提取文字，请尽量逐字记录所有可见文字、数字、表格和标签；如果用户给的是截图，请描述界面状态、按钮、菜单、报错、选中项和操作线索；如果用户给的是图表/流程图/架构图，请描述标题、节点、连线、层级、数据、方向和模块关系；如果用户要对比/找问题，请列出差异、异常点、风险点和不确定处；如果用户给的是视频，请按可见阶段或时间顺序展开人物/物体、动作、镜头变化、场景变化、字幕/画面文字和关键事件。对图片和视频都要尽可能详细，描述主体、场景、空间关系、颜色、布局和细节。若内容看不清，请说明哪些信息不可见或不确定。用清晰中文分点输出，保留必要英文术语并保持空格。";
+
 export function adaptAnthropicMessagesToMiniCpmVisionOpenAI(body: Record<string, unknown>): Record<string, unknown> {
   const messages = selectMiniCpmVisionPrompt(body["messages"]);
   const system = systemContentToText(body["system"]);
   messages.unshift({
     role: "system",
-    content: system
-      ? truncateText(system, 1000)
-      : "你是中文图表理解助手。只基于图片内容回答；不要输出思考过程；用清晰中文分点总结；如果图中有英文，保留必要英文术语并保持空格。",
+    content: system ? truncateText(system, 1000) : DEFAULT_VISION_OBSERVER_PROMPT,
   });
 
   const result: Record<string, unknown> = {
     model: body["model"],
     messages,
-    stream: body["stream"],
+    stream: false,
     max_tokens: Math.min(typeof body["max_tokens"] === "number" ? body["max_tokens"] : 2048, 2048),
   };
   return result;

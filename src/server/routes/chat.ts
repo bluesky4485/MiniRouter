@@ -19,6 +19,7 @@ import type { ModelSlot } from "../../providers/types.js";
 import { executeOpenAICompatibleChat } from "../../providers/openai-compatible.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
 import { extractPromptDigest } from "../../routing/features/prompt-digest.js";
+import { materializeLocalMediaReferencesWithDiagnostics } from "../../providers/client-adapter.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -237,8 +238,15 @@ function routingProfile(model: string, headerProfile: string | undefined): "eco"
 
 export async function chatCompletions(c: Context) {
   const auth = c.get("auth") as AuthResult;
-  const body = await c.req.json();
+  let body = await c.req.json();
   const requestId = randomUUID();
+  const localMedia = materializeLocalMediaReferencesWithDiagnostics(body, "openai-chat");
+  body = localMedia.body;
+  if (localMedia.status !== "no_path" && localMedia.status !== "no_text" && localMedia.status !== "no_messages") {
+    console.error(
+      `[MiniRouter] local media materialization status=${localMedia.status} path=${localMedia.filePath ?? "n/a"} bytes=${localMedia.bytes ?? "n/a"}`,
+    );
+  }
   const modelParam: string = body.model ?? "minirouter/auto";
 
   if (!isRoutingModel(modelParam)) {
@@ -264,6 +272,7 @@ export async function chatCompletions(c: Context) {
 
   const request = normalizeOpenAIChatRequest(body);
   const features = extractRoutingFeatures(request);
+  const hadVision = features.requirements.vision;
   let upstream: Response;
   try {
     upstream = await executeConfiguredSlot(body, configured.slot);
@@ -303,7 +312,7 @@ export async function chatCompletions(c: Context) {
       status: upstream.ok ? "success" : "error",
       hasTools: features.requirements.toolCalling,
       isStreaming,
-      hasVision: features.requirements.vision,
+      hasVision: hadVision,
       promptDigest: extractPromptDigest(request.messages) ?? undefined,
     });
   } catch (err) {

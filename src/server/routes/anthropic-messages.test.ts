@@ -1,9 +1,138 @@
 import { describe, expect, it } from "vitest";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 import {
   adaptAnthropicMessagesToMiniCpmVisionOpenAI,
   adaptMiniCpmVisionOpenAIResponseToAnthropic,
+  materializeLocalMediaReferences,
+  materializeLocalMediaReferencesWithDiagnostics,
 } from "../../providers/client-adapter.js";
+
+describe("materializeLocalMediaReferences", () => {
+  it("keeps native multimodal content unchanged", () => {
+    const body = {
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Use this uploaded video." },
+            { type: "video_url", video_url: { url: "data:video/mp4;base64,abc123" } },
+          ],
+        },
+      ],
+    };
+
+    expect(materializeLocalMediaReferences(body)).toBe(body);
+  });
+
+  it("turns a local mp4 path in text into an Anthropic video block", () => {
+    const dir = join(tmpdir(), `minirouter-media-${Date.now()}`);
+    mkdirSync(dir, { recursive: true });
+    const videoPath = join(dir, "sample.mp4");
+    writeFileSync(videoPath, Buffer.from([0, 1, 2, 3]));
+
+    try {
+      const body = materializeLocalMediaReferences({
+        messages: [
+          {
+            role: "user",
+            content: `@"${videoPath}" summarize this video`,
+          },
+        ],
+      });
+
+      expect(body).not.toBeUndefined();
+      expect(body.messages).toEqual([
+        {
+          role: "user",
+          content: [
+            { type: "text", text: `@"${videoPath}" summarize this video` },
+            {
+              type: "video",
+              source: {
+                type: "base64",
+                media_type: "video/mp4",
+                data: "AAECAw==",
+              },
+            },
+          ],
+        },
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("turns a local mp4 path in OpenAI chat text into a video_url data URL", () => {
+    const dir = join(tmpdir(), `minirouter-media-${Date.now()}`);
+    mkdirSync(dir, { recursive: true });
+    const videoPath = join(dir, "sample.mp4");
+    writeFileSync(videoPath, Buffer.from([0, 1, 2, 3]));
+
+    try {
+      const result = materializeLocalMediaReferencesWithDiagnostics({
+        messages: [
+          {
+            role: "user",
+            content: `@"${videoPath}" summarize this video`,
+          },
+        ],
+      }, "openai-chat");
+
+      expect(result.status).toBe("attached");
+      expect(result.body.messages).toEqual([
+        {
+          role: "user",
+          content: [
+            { type: "text", text: `@"${videoPath}" summarize this video` },
+            {
+              type: "video_url",
+              video_url: {
+                url: "data:video/mp4;base64,AAECAw==",
+              },
+            },
+          ],
+        },
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports too_large when local media exceeds the configured limit", () => {
+    const dir = join(tmpdir(), `minirouter-media-${Date.now()}`);
+    mkdirSync(dir, { recursive: true });
+    const videoPath = join(dir, "sample.mp4");
+    writeFileSync(videoPath, Buffer.from([0, 1, 2, 3]));
+    const previous = process.env["MINIROUTER_LOCAL_MEDIA_MAX_BYTES"];
+    process.env["MINIROUTER_LOCAL_MEDIA_MAX_BYTES"] = "3";
+
+    try {
+      const body = {
+        messages: [
+          {
+            role: "user",
+            content: `@"${videoPath}" summarize this video`,
+          },
+        ],
+      };
+      const result = materializeLocalMediaReferencesWithDiagnostics(body, "anthropic-messages");
+
+      expect(result.status).toBe("too_large");
+      expect(result.body).toBe(body);
+      expect(result.filePath).toBe(videoPath);
+    } finally {
+      if (previous === undefined) {
+        delete process.env["MINIROUTER_LOCAL_MEDIA_MAX_BYTES"];
+      } else {
+        process.env["MINIROUTER_LOCAL_MEDIA_MAX_BYTES"] = previous;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("adaptAnthropicMessagesToMiniCpmVisionOpenAI", () => {
   it("converts Anthropic Messages multimodal requests to OpenAI chat shape", () => {
@@ -42,7 +171,7 @@ describe("adaptAnthropicMessagesToMiniCpmVisionOpenAI", () => {
 
     expect(body).toEqual({
       model: "minirouter/auto",
-      stream: true,
+      stream: false,
       max_tokens: 2048,
       messages: [
         { role: "system", content: "Be concise." },
@@ -60,6 +189,36 @@ describe("adaptAnthropicMessagesToMiniCpmVisionOpenAI", () => {
         },
       ],
     });
+  });
+
+  it("instructs the vision model to produce detailed observations as the LLM eyes", () => {
+    const body = adaptAnthropicMessagesToMiniCpmVisionOpenAI({
+      model: "minirouter/auto",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "video",
+              source: {
+                type: "base64",
+                media_type: "video/mp4",
+                data: "abc123",
+              },
+            },
+            { type: "text", text: "总结这个视频" },
+          ],
+        },
+      ],
+    });
+
+    const systemPrompt = String((body.messages as Array<Record<string, unknown>>)[0]?.content);
+    expect(systemPrompt).toContain("LLM 的眼睛");
+    expect(systemPrompt).toContain("尽可能详细");
+    expect(systemPrompt).toContain("视频");
+    expect(systemPrompt).toContain("OCR");
+    expect(systemPrompt).toContain("截图");
+    expect(systemPrompt).toContain("用户任务");
   });
 
   it("drops tool history for OpenAI-compatible vision upstreams", () => {
@@ -96,7 +255,7 @@ describe("adaptAnthropicMessagesToMiniCpmVisionOpenAI", () => {
     expect(body.messages).toEqual([
       {
         role: "system",
-        content: "你是中文图表理解助手。只基于图片内容回答；不要输出思考过程；用清晰中文分点总结；如果图中有英文，保留必要英文术语并保持空格。",
+        content: expect.any(String),
       },
       {
         role: "user",
@@ -156,7 +315,7 @@ describe("adaptAnthropicMessagesToMiniCpmVisionOpenAI", () => {
     expect(body.messages).toEqual([
       {
         role: "system",
-        content: "你是中文图表理解助手。只基于图片内容回答；不要输出思考过程；用清晰中文分点总结；如果图中有英文，保留必要英文术语并保持空格。",
+        content: expect.any(String),
       },
       {
         role: "user",
@@ -198,7 +357,7 @@ describe("adaptAnthropicMessagesToMiniCpmVisionOpenAI", () => {
     expect(body.messages).toEqual([
       {
         role: "system",
-        content: "你是中文图表理解助手。只基于图片内容回答；不要输出思考过程；用清晰中文分点总结；如果图中有英文，保留必要英文术语并保持空格。",
+        content: expect.any(String),
       },
       {
         role: "user",

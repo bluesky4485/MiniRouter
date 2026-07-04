@@ -31,13 +31,13 @@ function normalizeContent(content: AnthropicMessage["content"]): CanonicalConten
     if (part["type"] === "text") {
       return [{ type: "text", text: String(part["text"] ?? "") }];
     }
-    if (part["type"] === "image") {
+    if (part["type"] === "image" || part["type"] === "video") {
       const source = part["source"];
       const mediaType =
         typeof source === "object" && source !== null && "media_type" in source
           ? String((source as { media_type?: unknown }).media_type ?? "")
           : undefined;
-      return [{ type: "image", mediaType }];
+      return [{ type: part["type"] === "video" ? "video" : "image", mediaType }];
     }
     return [];
   });
@@ -79,4 +79,3 @@ export function normalizeAnthropicMessagesRequest(body: AnthropicMessagesRequest
     raw: body,
   };
 }
-
