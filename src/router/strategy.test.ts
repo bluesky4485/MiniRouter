@@ -70,7 +70,8 @@ describe("RulesStrategy", () => {
     });
 
     expect(decision.profile).toBe("eco");
-    expect(decision.tierConfigs).toEqual(DEFAULT_ROUTING_CONFIG.ecoTiers);
+    // ecoTiers commented out (.env slot mode) — eco profile falls back to tiers
+    expect(decision.tierConfigs).toEqual(DEFAULT_ROUTING_CONFIG.tiers);
   });
 
   it("sets premium profile when routingProfile is premium", () => {
@@ -81,7 +82,8 @@ describe("RulesStrategy", () => {
     });
 
     expect(decision.profile).toBe("premium");
-    expect(decision.tierConfigs).toEqual(DEFAULT_ROUTING_CONFIG.premiumTiers);
+    // premiumTiers commented out (.env slot mode) — premium profile falls back to tiers
+    expect(decision.tierConfigs).toEqual(DEFAULT_ROUTING_CONFIG.tiers);
   });
 
   it("falls back to regular tiers when ecoTiers is null without dropping into auto mode", () => {
@@ -222,8 +224,10 @@ describe("RulesStrategy", () => {
       now: new Date("2025-01-01"),
     });
 
-    expect(decision.profile).toBe("agentic");
-    expect(decision.tierConfigs).toEqual(DEFAULT_ROUTING_CONFIG.agenticTiers);
+    // agenticTiers commented out (.env slot mode) — agenticMode:true has no
+    // agenticTiers to switch to, so profile stays auto
+    expect(decision.profile).toBe("auto");
+    expect(decision.tierConfigs).toEqual(DEFAULT_ROUTING_CONFIG.tiers);
   });
 });
 
