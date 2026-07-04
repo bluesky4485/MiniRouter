@@ -24,6 +24,14 @@ import { materializeLocalMediaReferencesWithDiagnostics } from "../../providers/
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
+type OptimizationLog = {
+  reason?: string;
+  compression?: {
+    originalChars: number;
+    compressedChars: number;
+    blocks: number;
+  };
+};
 
 /**
  * Extract client-declared thinking effort from request body.
@@ -108,9 +116,10 @@ export function selectConfiguredSlotForChat(
   };
 }
 
-async function executeConfiguredSlot(body: any, slot: ModelSlot): Promise<Response> {
+async function executeConfiguredSlot(body: any, slot: ModelSlot): Promise<{ upstream: Response; optimization: OptimizationLog }> {
   if (!slotCanServeOpenAIChat(slot)) {
-    return Response.json(
+    return {
+      upstream: Response.json(
       {
         error: {
           message:
@@ -119,7 +128,9 @@ async function executeConfiguredSlot(body: any, slot: ModelSlot): Promise<Respon
         },
       },
       { status: 400 },
-    );
+      ),
+      optimization: {},
+    };
   }
 
   const optimized = await optimizeWithHeadroom({
@@ -127,7 +138,23 @@ async function executeConfiguredSlot(body: any, slot: ModelSlot): Promise<Respon
     body,
     slot,
   });
-  return executeOpenAICompatibleChat(optimized.body, slot);
+  return {
+    upstream: await executeOpenAICompatibleChat(optimized.body, slot),
+    optimization: {
+      reason: optimized.applied ? optimized.reason : undefined,
+      compression: optimized.compression,
+    },
+  };
+}
+
+function usageOptimizationFields(optimization: OptimizationLog) {
+  return {
+    optimizationReason: optimization.reason,
+    compressionApplied: optimization.compression !== undefined,
+    compressionOriginalChars: optimization.compression?.originalChars,
+    compressionCompressedChars: optimization.compression?.compressedChars,
+    compressionBlocks: optimization.compression?.blocks,
+  };
 }
 
 export function createMissingSlotResponse(): Response {
@@ -192,7 +219,13 @@ export async function parseOpenAIUsage(upstream: Response): Promise<{ promptToke
     return {
       promptTokens: Number(usage.prompt_tokens ?? 0),
       completionTokens: Number(usage.completion_tokens ?? 0),
-      cacheReadTokens: Number(usage.cache_read_tokens ?? usage.prompt_tokens_details?.caching?.credits ?? 0),
+      cacheReadTokens: Number(
+        usage.cache_read_tokens ??
+        usage.cached_tokens ??
+        usage.prompt_tokens_details?.cached_tokens ??
+        usage.prompt_tokens_details?.caching?.credits ??
+        0,
+      ),
     };
   } catch {
     return undefined;
@@ -212,7 +245,15 @@ export async function parseAnthropicUsage(upstream: Response): Promise<{ promptT
     return {
       promptTokens: Number(usage.input_tokens ?? usage.prompt_tokens ?? 0),
       completionTokens: Number(usage.output_tokens ?? usage.completion_tokens ?? 0),
-      cacheReadTokens: Number(usage.cache_creation_input_tokens ?? usage.cache_read_input_tokens ?? 0),
+      cacheReadTokens: Number(
+        usage.cache_read_input_tokens ??
+        usage.cache_read_tokens ??
+        usage.cached_tokens ??
+        usage.prompt_tokens_details?.cached_tokens ??
+        usage.input_tokens_details?.cached_tokens ??
+        usage.prompt_tokens_details?.caching?.credits ??
+        0,
+      ),
     };
   } catch {
     return undefined;
@@ -278,8 +319,11 @@ export async function chatCompletions(c: Context) {
   const features = extractRoutingFeatures(request);
   const hadVision = features.requirements.vision;
   let upstream: Response;
+  let optimization: OptimizationLog = {};
   try {
-    upstream = await executeConfiguredSlot(body, configured.slot);
+    const result = await executeConfiguredSlot(body, configured.slot);
+    upstream = result.upstream;
+    optimization = result.optimization;
   } catch (error) {
     return createProviderErrorResponse(error);
   }
@@ -319,6 +363,7 @@ export async function chatCompletions(c: Context) {
             isStreaming,
             hasVision: hadVision,
             promptDigest: extractPromptDigest(request.messages) ?? undefined,
+            ...usageOptimizationFields(optimization),
           }).catch((err) => {
             console.error("[MiniRouter] Failed to write stream usage log:", (err as Error).message);
           });
@@ -359,6 +404,7 @@ export async function chatCompletions(c: Context) {
       isStreaming,
       hasVision: hadVision,
       promptDigest: extractPromptDigest(request.messages) ?? undefined,
+      ...usageOptimizationFields(optimization),
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);

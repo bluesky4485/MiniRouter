@@ -12,3 +12,4 @@ dist-e2e/
 *.db-journal
 *.db-wal
 tmp/
+logs/

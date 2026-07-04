@@ -32,6 +32,11 @@ export interface UsageLogEntry {
   hasTools: boolean;
   hasVision: boolean;
   promptDigest: string | null;
+  optimizationReason: string | null;
+  compressionApplied: boolean;
+  compressionOriginalChars: number;
+  compressionCompressedChars: number;
+  compressionBlocks: number;
   createdAt: string;
 }
 
@@ -99,6 +104,11 @@ export async function getUsageLogs(c: Context) {
     hasTools: !!r.hasTools,
     hasVision: !!r.hasVision,
     promptDigest: r.promptDigest ?? null,
+    optimizationReason: r.optimizationReason ?? null,
+    compressionApplied: !!r.compressionApplied,
+    compressionOriginalChars: Number(r.compressionOriginalChars ?? 0),
+    compressionCompressedChars: Number(r.compressionCompressedChars ?? 0),
+    compressionBlocks: Number(r.compressionBlocks ?? 0),
     createdAt: r.createdAt,
   }));
 
@@ -125,6 +135,10 @@ export async function getUserUsageSummary(c: Context) {
       totalCostUsd: sql<number>`COALESCE(SUM(${usageLogs.costUsd}), 0)`,
       totalInputTokens: sql<number>`COALESCE(SUM(${usageLogs.inputTokens}), 0)`,
       totalOutputTokens: sql<number>`COALESCE(SUM(${usageLogs.outputTokens}), 0)`,
+      totalCompressionOriginalChars: sql<number>`COALESCE(SUM(${usageLogs.compressionOriginalChars}), 0)`,
+      totalCompressionCompressedChars: sql<number>`COALESCE(SUM(${usageLogs.compressionCompressedChars}), 0)`,
+      totalCompressionBlocks: sql<number>`COALESCE(SUM(${usageLogs.compressionBlocks}), 0)`,
+      compressionRequests: sql<number>`COUNT(CASE WHEN ${usageLogs.compressionApplied} = 1 THEN 1 END)`,
       avgSavingsPct: sql<number>`COALESCE(AVG(${usageLogs.savingsPct}), 0)`,
     })
     .from(usageLogs)
@@ -143,6 +157,9 @@ export async function getUserUsageSummary(c: Context) {
       requests: sql<number>`COUNT(*)`,
       inputTokens: sql<number>`COALESCE(SUM(${usageLogs.inputTokens}), 0)`,
       outputTokens: sql<number>`COALESCE(SUM(${usageLogs.outputTokens}), 0)`,
+      compressionOriginalChars: sql<number>`COALESCE(SUM(${usageLogs.compressionOriginalChars}), 0)`,
+      compressionCompressedChars: sql<number>`COALESCE(SUM(${usageLogs.compressionCompressedChars}), 0)`,
+      compressionBlocks: sql<number>`COALESCE(SUM(${usageLogs.compressionBlocks}), 0)`,
       costUsd: sql<number>`COALESCE(SUM(${usageLogs.costUsd}), 0)`,
     })
     .from(usageLogs)
@@ -163,6 +180,10 @@ export async function getUserUsageSummary(c: Context) {
       totalCostUsd: Number(result[0]?.totalCostUsd ?? 0),
       totalInputTokens: Number(result[0]?.totalInputTokens ?? 0),
       totalOutputTokens: Number(result[0]?.totalOutputTokens ?? 0),
+      totalCompressionOriginalChars: Number(result[0]?.totalCompressionOriginalChars ?? 0),
+      totalCompressionCompressedChars: Number(result[0]?.totalCompressionCompressedChars ?? 0),
+      totalCompressionBlocks: Number(result[0]?.totalCompressionBlocks ?? 0),
+      compressionRequests: Number(result[0]?.compressionRequests ?? 0),
       avgSavingsPct: Number(result[0]?.avgSavingsPct ?? 0),
     },
     byModel: byModel.map((r) => ({
@@ -170,6 +191,9 @@ export async function getUserUsageSummary(c: Context) {
       requests: Number(r.requests),
       inputTokens: Number(r.inputTokens),
       outputTokens: Number(r.outputTokens),
+      compressionOriginalChars: Number(r.compressionOriginalChars),
+      compressionCompressedChars: Number(r.compressionCompressedChars),
+      compressionBlocks: Number(r.compressionBlocks),
       costUsd: Number(r.costUsd),
     })),
     period: { from, to },

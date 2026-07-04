@@ -28,6 +28,11 @@ export interface LogUsageInput {
   hasTools?: boolean;
   hasVision?: boolean;
   promptDigest?: string;
+  optimizationReason?: string;
+  compressionApplied?: boolean;
+  compressionOriginalChars?: number;
+  compressionCompressedChars?: number;
+  compressionBlocks?: number;
 }
 
 export async function logUsage(input: LogUsageInput): Promise<void> {
@@ -54,6 +59,11 @@ export async function logUsage(input: LogUsageInput): Promise<void> {
     hasTools: input.hasTools ? 1 : 0,
     hasVision: input.hasVision ? 1 : 0,
     promptDigest: input.promptDigest ?? null,
+    optimizationReason: input.optimizationReason ?? null,
+    compressionApplied: input.compressionApplied ? 1 : 0,
+    compressionOriginalChars: input.compressionOriginalChars ?? 0,
+    compressionCompressedChars: input.compressionCompressedChars ?? 0,
+    compressionBlocks: input.compressionBlocks ?? 0,
     createdAt: new Date().toISOString(),
   });
 }

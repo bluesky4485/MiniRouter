@@ -97,7 +97,17 @@ function extractUsage(json: any, protocol: "anthropic" | "openai", usage: TapUsa
     if (json?.type === "message_start" && json?.message?.usage) {
       const u = json.message.usage;
       if (u.input_tokens != null) usage.inputTokens = Number(u.input_tokens);
-      if (u.cache_read_input_tokens != null) usage.cacheReadTokens = Number(u.cache_read_input_tokens);
+      if (u.cache_read_input_tokens != null) {
+        usage.cacheReadTokens = Number(u.cache_read_input_tokens);
+      } else if (u.cache_read_tokens != null) {
+        usage.cacheReadTokens = Number(u.cache_read_tokens);
+      } else if (u.cached_tokens != null) {
+        usage.cacheReadTokens = Number(u.cached_tokens);
+      } else if (u.prompt_tokens_details?.cached_tokens != null) {
+        usage.cacheReadTokens = Number(u.prompt_tokens_details.cached_tokens);
+      } else if (u.input_tokens_details?.cached_tokens != null) {
+        usage.cacheReadTokens = Number(u.input_tokens_details.cached_tokens);
+      }
     }
     if (json?.type === "message_delta" && json?.usage) {
       const u = json.usage;
@@ -110,6 +120,13 @@ function extractUsage(json: any, protocol: "anthropic" | "openai", usage: TapUsa
       const u = json.usage;
       if (u.prompt_tokens != null) usage.inputTokens = Number(u.prompt_tokens);
       if (u.completion_tokens != null) usage.outputTokens = Number(u.completion_tokens);
+      if (u.cache_read_tokens != null) {
+        usage.cacheReadTokens = Number(u.cache_read_tokens);
+      } else if (u.cached_tokens != null) {
+        usage.cacheReadTokens = Number(u.cached_tokens);
+      } else if (u.prompt_tokens_details?.cached_tokens != null) {
+        usage.cacheReadTokens = Number(u.prompt_tokens_details.cached_tokens);
+      }
       if (u.prompt_tokens_details?.caching?.credits != null) {
         usage.cacheReadTokens = Number(u.prompt_tokens_details.caching.credits);
       }

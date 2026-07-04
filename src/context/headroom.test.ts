@@ -134,4 +134,74 @@ describe("optimizeWithHeadroom", () => {
     expect(result.applied).toBe(true);
     expect(result.reason).toBe("context_headroom");
   });
+
+  it("uses local tail compression when enabled and no Headroom URL is configured", async () => {
+    const fetchImpl = vi.fn();
+    const body = {
+      messages: [
+        { role: "system", content: "stable prefix" },
+        { role: "user", content: "install dependencies" },
+        { role: "tool", content: Array.from({ length: 200 }, (_, i) => `log ${i} ${"x".repeat(80)}`).join("\n") },
+      ],
+    };
+
+    const result = await optimizeWithHeadroom({
+      protocol: "openai-chat",
+      body,
+      slot,
+      config: loadHeadroomConfig({
+        MINIROUTER_HEADROOM_ENABLED: "true",
+        MINIROUTER_HEADROOM_MODE: "adaptive",
+        MINIROUTER_HEADROOM_MIN_TOKENS: "2000",
+        MINIROUTER_TAIL_COMPRESSION_ENABLED: "true",
+        MINIROUTER_TAIL_COMPRESSION_MIN_CHARS: "1000",
+        MINIROUTER_TAIL_COMPRESSION_MAX_CHARS: "800",
+      }),
+      fetchImpl,
+    });
+
+    expect(result.applied).toBe(true);
+    expect(result.reason).toBe("local_tail_compression");
+    expect(result.compression).toMatchObject({
+      blocks: 1,
+    });
+    expect(result.compression!.originalChars).toBeGreaterThan(result.compression!.compressedChars);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(result.body.messages[0]).toEqual(body.messages[0]);
+    expect(result.body.messages[2].content).toContain("MiniRouter tail-compressed");
+  });
+
+  it("falls back to local tail compression when Headroom fetch fails", async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new Error("connection refused");
+    });
+    const body = {
+      messages: [
+        { role: "system", content: "stable prefix" },
+        { role: "user", content: "install dependencies" },
+        { role: "tool", content: Array.from({ length: 200 }, (_, i) => `log ${i} ${"x".repeat(80)}`).join("\n") },
+      ],
+    };
+
+    const result = await optimizeWithHeadroom({
+      protocol: "openai-chat",
+      body,
+      slot,
+      config: loadHeadroomConfig({
+        MINIROUTER_HEADROOM_ENABLED: "true",
+        MINIROUTER_HEADROOM_MODE: "adaptive",
+        MINIROUTER_HEADROOM_URL: "http://localhost:8787",
+        MINIROUTER_HEADROOM_MIN_TOKENS: "2000",
+        MINIROUTER_TAIL_COMPRESSION_ENABLED: "true",
+        MINIROUTER_TAIL_COMPRESSION_MIN_CHARS: "1000",
+        MINIROUTER_TAIL_COMPRESSION_MAX_CHARS: "800",
+      }),
+      fetchImpl,
+    });
+
+    expect(result.applied).toBe(true);
+    expect(result.reason).toBe("local_tail_compression");
+    expect(result.compression?.blocks).toBe(1);
+    expect(result.body.messages[2].content).toContain("MiniRouter tail-compressed");
+  });
 });

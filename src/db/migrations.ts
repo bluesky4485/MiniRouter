@@ -8,6 +8,16 @@
 import { getDb } from "./connection.js";
 import { sql } from "drizzle-orm";
 
+function addColumnIfMissing(table: string, column: string, definition: string): void {
+  const db = getDb();
+  const exists = db.get(
+    sql.raw(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = '${column}'`),
+  );
+  if (!exists) {
+    db.run(sql.raw(`ALTER TABLE ${table} ADD COLUMN ${definition}`));
+  }
+}
+
 /**
  * Run all pending migrations. Currently creates tables if they don't exist.
  * Idempotent — safe to call on every server start.
@@ -93,6 +103,11 @@ export async function runMigrations(): Promise<void> {
       has_tools INTEGER DEFAULT 0,
       has_vision INTEGER DEFAULT 0,
       prompt_digest TEXT,
+      optimization_reason TEXT,
+      compression_applied INTEGER DEFAULT 0,
+      compression_original_chars INTEGER DEFAULT 0,
+      compression_compressed_chars INTEGER DEFAULT 0,
+      compression_blocks INTEGER DEFAULT 0,
       created_at TEXT NOT NULL
     )
   `);
@@ -104,14 +119,14 @@ export async function runMigrations(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_usage_created_at ON usage_logs(created_at)
   `);
 
-  // Add prompt_digest to pre-existing usage_logs tables (idempotent).
+  // Add new columns to pre-existing usage_logs tables (idempotent).
   // SQLite lacks ADD COLUMN IF NOT EXISTS; probe pragma_table_info instead.
-  const hasPromptDigest = db.get(
-    sql`SELECT 1 FROM pragma_table_info('usage_logs') WHERE name = 'prompt_digest'`,
-  );
-  if (!hasPromptDigest) {
-    db.run(sql`ALTER TABLE usage_logs ADD COLUMN prompt_digest TEXT`);
-  }
+  addColumnIfMissing("usage_logs", "prompt_digest", "prompt_digest TEXT");
+  addColumnIfMissing("usage_logs", "optimization_reason", "optimization_reason TEXT");
+  addColumnIfMissing("usage_logs", "compression_applied", "compression_applied INTEGER DEFAULT 0");
+  addColumnIfMissing("usage_logs", "compression_original_chars", "compression_original_chars INTEGER DEFAULT 0");
+  addColumnIfMissing("usage_logs", "compression_compressed_chars", "compression_compressed_chars INTEGER DEFAULT 0");
+  addColumnIfMissing("usage_logs", "compression_blocks", "compression_blocks INTEGER DEFAULT 0");
 
   db.run(sql`
     CREATE TABLE IF NOT EXISTS provider_instances (

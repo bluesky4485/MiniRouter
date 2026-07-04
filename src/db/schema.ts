@@ -128,6 +128,13 @@ export const usageLogs = sqliteTable(
     // NULL for probe requests / tool-result-only messages.
     promptDigest: text("prompt_digest"),
 
+    // Context optimization / tail compression metrics.
+    optimizationReason: text("optimization_reason"),
+    compressionApplied: integer("compression_applied").default(0),
+    compressionOriginalChars: integer("compression_original_chars").default(0),
+    compressionCompressedChars: integer("compression_compressed_chars").default(0),
+    compressionBlocks: integer("compression_blocks").default(0),
+
     createdAt: text("created_at").notNull(),
   },
   (table) => [

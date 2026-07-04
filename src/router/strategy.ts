@@ -61,6 +61,20 @@ function applyPromotions(
   return result;
 }
 
+function hasExplicitStrongModelIntent(prompt: string): boolean {
+  const normalized = prompt.toLowerCase();
+  return (
+    /上\s*高智/.test(normalized) ||
+    /高智\s*模型/.test(normalized) ||
+    /强\s*模型/.test(normalized) ||
+    /更强\s*模型/.test(normalized) ||
+    /高质量\s*模型/.test(normalized) ||
+    /strong\s+model/.test(normalized) ||
+    /smarter\s+model/.test(normalized) ||
+    /premium\s+model/.test(normalized)
+  );
+}
+
 /**
  * Rules-based routing strategy.
  * Extracted from the original route() in index.ts — logic is identical.
@@ -158,6 +172,15 @@ export class RulesStrategy implements RouterStrategy {
       tier = config.overrides.ambiguousDefaultTier;
       confidence = 0.5;
       reasoning += ` | ambiguous -> default: ${tier}`;
+    }
+
+    if (hasExplicitStrongModelIntent(prompt)) {
+      const tierRank: Record<Tier, number> = { SIMPLE: 0, MEDIUM: 1, COMPLEX: 2, REASONING: 3 };
+      if (tierRank[tier] < tierRank.COMPLEX) {
+        tier = "COMPLEX";
+        confidence = Math.max(confidence, 0.8);
+        reasoning += " | upgraded to COMPLEX (explicit strong-model request)";
+      }
     }
 
     // Apply structured output minimum tier

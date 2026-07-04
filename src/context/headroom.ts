@@ -1,4 +1,9 @@
 import type { ModelSlot } from "../providers/types.js";
+import {
+  compressRequestTail,
+  loadTailCompressionConfig,
+  type TailCompressionConfig,
+} from "./tail-compression.js";
 
 export type HeadroomMode = "off" | "adaptive" | "force";
 
@@ -8,6 +13,7 @@ export type HeadroomConfig = {
   url?: string;
   minTokens: number;
   contextRatio: number;
+  tailCompression: TailCompressionConfig;
 };
 
 export type HeadroomProtocol = "openai-chat" | "anthropic-messages";
@@ -15,7 +21,19 @@ export type HeadroomProtocol = "openai-chat" | "anthropic-messages";
 export type HeadroomResult<TBody> = {
   body: TBody;
   applied: boolean;
-  reason: "disabled" | "short_request" | "no_url" | "force" | "min_tokens" | "context_headroom";
+  reason:
+    | "disabled"
+    | "short_request"
+    | "no_url"
+    | "force"
+    | "min_tokens"
+    | "context_headroom"
+    | "local_tail_compression";
+  compression?: {
+    originalChars: number;
+    compressedChars: number;
+    blocks: number;
+  };
 };
 
 type EnvLike = Record<string, string | undefined>;
@@ -45,6 +63,7 @@ export function loadHeadroomConfig(env: EnvLike = process.env): HeadroomConfig {
     url: env["MINIROUTER_HEADROOM_URL"],
     minTokens: readNumber(env["MINIROUTER_HEADROOM_MIN_TOKENS"], 8000),
     contextRatio: readNumber(env["MINIROUTER_HEADROOM_CONTEXT_RATIO"], 0.85),
+    tailCompression: loadTailCompressionConfig(env),
   };
 }
 
@@ -84,6 +103,33 @@ function optimizeUrl(baseUrl: string): string {
   return `${trimmed}/optimize`;
 }
 
+function optimizeLocally<TBody extends Record<string, unknown>>(
+  protocol: HeadroomProtocol,
+  body: TBody,
+  config: HeadroomConfig,
+): HeadroomResult<TBody> | null {
+  const local = compressRequestTail({
+    protocol,
+    body,
+    config: config.tailCompression,
+  });
+  if (!local.applied) return null;
+
+  console.error(
+    `[MiniRouter] local tail compression applied blocks=${local.compressedBlocks} chars=${local.originalChars}->${local.compressedChars}`,
+  );
+  return {
+    body: local.body,
+    applied: true,
+    reason: "local_tail_compression",
+    compression: {
+      originalChars: local.originalChars,
+      compressedChars: local.compressedChars,
+      blocks: local.compressedBlocks,
+    },
+  };
+}
+
 export async function optimizeWithHeadroom<TBody extends Record<string, unknown>>(input: {
   protocol: HeadroomProtocol;
   body: TBody;
@@ -99,29 +145,41 @@ export async function optimizeWithHeadroom<TBody extends Record<string, unknown>
   }
 
   if (!config.url) {
+    const local = optimizeLocally(input.protocol, input.body, config);
+    if (local) return local;
     return { body: input.body, applied: false, reason: "no_url" };
   }
 
-  const response = await (input.fetchImpl ?? fetch)(optimizeUrl(config.url), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      protocol: input.protocol,
-      body: input.body,
-      slot: {
-        name: input.slot.slot,
-        model: input.slot.model,
-      },
-      policy: {
-        mode: config.mode,
-        reason,
-        protectStaticPrefix: true,
-        preserveNativeApiShape: true,
-      },
-    }),
-  });
+  let response: Response;
+  try {
+    response = await (input.fetchImpl ?? fetch)(optimizeUrl(config.url), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        protocol: input.protocol,
+        body: input.body,
+        slot: {
+          name: input.slot.slot,
+          model: input.slot.model,
+        },
+        policy: {
+          mode: config.mode,
+          reason,
+          protectStaticPrefix: true,
+          preserveNativeApiShape: true,
+        },
+      }),
+    });
+  } catch (error) {
+    const local = optimizeLocally(input.protocol, input.body, config);
+    if (local) return local;
+    console.error("[MiniRouter] Headroom request failed:", (error as Error).message);
+    return { body: input.body, applied: false, reason };
+  }
 
   if (!response.ok) {
+    const local = optimizeLocally(input.protocol, input.body, config);
+    if (local) return local;
     return { body: input.body, applied: false, reason };
   }
 
@@ -132,4 +190,3 @@ export async function optimizeWithHeadroom<TBody extends Record<string, unknown>
     reason,
   };
 }
-

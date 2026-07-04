@@ -24,6 +24,14 @@ type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
 
 type SlotConfig = { slot: ModelSlot; tier: RoutedTier; features: RoutingFeatures };
+type OptimizationLog = {
+  reason?: string;
+  compression?: {
+    originalChars: number;
+    compressedChars: number;
+    blocks: number;
+  };
+};
 
 /**
  * Extract client-declared thinking effort from request body.
@@ -274,7 +282,10 @@ export function createMissingAnthropicSlotResponse(): Response {
   );
 }
 
-async function executeConfiguredAnthropicBody(body: Record<string, unknown>, slot: ModelSlot): Promise<Response> {
+async function executeConfiguredAnthropicBody(
+  body: Record<string, unknown>,
+  slot: ModelSlot,
+): Promise<{ upstream: Response; optimization: OptimizationLog }> {
   if (slot.provider === "openai-compatible") {
     const openAiBody = adaptAnthropicMessagesToMiniCpmVisionOpenAI(body);
     const optimized = await optimizeWithHeadroom({
@@ -283,10 +294,16 @@ async function executeConfiguredAnthropicBody(body: Record<string, unknown>, slo
       slot,
     });
     const upstream = await executeOpenAICompatibleChat(optimized.body, slot);
-    return adaptMiniCpmVisionOpenAIResponseToAnthropic(upstream, {
-      model: slot.model,
-      stream: body["stream"] === true,
-    });
+    return {
+      upstream: await adaptMiniCpmVisionOpenAIResponseToAnthropic(upstream, {
+        model: slot.model,
+        stream: body["stream"] === true,
+      }),
+      optimization: {
+        reason: optimized.applied ? optimized.reason : undefined,
+        compression: optimized.compression,
+      },
+    };
   }
 
   const optimized = await optimizeWithHeadroom({
@@ -294,7 +311,23 @@ async function executeConfiguredAnthropicBody(body: Record<string, unknown>, slo
     body,
     slot,
   });
-  return executeAnthropicMessages(optimized.body, slot);
+  return {
+    upstream: await executeAnthropicMessages(optimized.body, slot),
+    optimization: {
+      reason: optimized.applied ? optimized.reason : undefined,
+      compression: optimized.compression,
+    },
+  };
+}
+
+function usageOptimizationFields(optimization: OptimizationLog) {
+  return {
+    optimizationReason: optimization.reason,
+    compressionApplied: optimization.compression !== undefined,
+    compressionOriginalChars: optimization.compression?.originalChars,
+    compressionCompressedChars: optimization.compression?.compressedChars,
+    compressionBlocks: optimization.compression?.blocks,
+  };
 }
 
 export async function anthropicMessages(c: Context) {
@@ -346,8 +379,11 @@ export async function anthropicMessages(c: Context) {
   if (!configured) return createMissingAnthropicSlotResponse();
 
   let upstream: Response;
+  let optimization: OptimizationLog = {};
   try {
-    upstream = await executeConfiguredAnthropicBody(body, configured.slot);
+    const result = await executeConfiguredAnthropicBody(body, configured.slot);
+    upstream = result.upstream;
+    optimization = result.optimization;
   } catch (error) {
     console.error("[MiniRouter] upstream request failed:", (error as Error).message);
     return createAnthropicProviderErrorResponse(error);
@@ -359,6 +395,7 @@ export async function anthropicMessages(c: Context) {
   const isStreaming = body.stream === true;
   let inputTokens = configured.features.estimatedInputTokens;
   let outputTokens = 0;
+  let cacheReadTokens = 0;
 
   if (isStreaming && upstream.ok && upstream.body) {
     const { passthrough, finalUsage } = createSseUsageTap(upstream.body, "anthropic");
@@ -381,12 +418,14 @@ export async function anthropicMessages(c: Context) {
             strategy: "env-slot-native-anthropic",
             inputTokens: u.inputTokens ?? inputTokens,
             outputTokens: u.outputTokens ?? 0,
+            cacheReadTokens: u.cacheReadTokens ?? 0,
             costUsd: 0,
             status: "success",
             hasTools: configured.features.requirements.toolCalling,
             isStreaming,
             hasVision: hadVision || configured.features.requirements.vision,
             promptDigest: promptDigest ?? undefined,
+            ...usageOptimizationFields(optimization),
           }).catch((err) => {
             console.error("[MiniRouter] Failed to write stream usage log:", (err as Error).message);
           });
@@ -405,6 +444,7 @@ export async function anthropicMessages(c: Context) {
     if (usage) {
       inputTokens = usage.promptTokens;
       outputTokens = usage.completionTokens;
+      cacheReadTokens = usage.cacheReadTokens;
     }
   }
 
@@ -418,12 +458,14 @@ export async function anthropicMessages(c: Context) {
       strategy: "env-slot-native-anthropic",
       inputTokens,
       outputTokens,
+      cacheReadTokens,
       costUsd: 0,
       status: upstream.ok ? "success" : "error",
       hasTools: configured.features.requirements.toolCalling,
       isStreaming,
       hasVision: hadVision || configured.features.requirements.vision,
       promptDigest: promptDigest ?? undefined,
+      ...usageOptimizationFields(optimization),
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);

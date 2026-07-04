@@ -183,6 +183,17 @@ describe("RulesStrategy", () => {
     expect(decision.reasoning).not.toContain("effort:");
   });
 
+  it("upgrades to COMPLEX when the user explicitly asks for a stronger model", () => {
+    const strategy = new RulesStrategy();
+    const decision = strategy.route("这几个标题都不清楚，目前总结不足，上高智模型试下", undefined, 4096, {
+      ...baseOptions,
+      hasTools: true,
+    });
+
+    expect(decision.tier).toBe("COMPLEX");
+    expect(decision.reasoning).toContain("explicit strong-model request");
+  });
+
   it("sets auto profile for default requests", () => {
     const strategy = new RulesStrategy();
     // Use a date well outside any promo windows to test base tiers (no promotion overrides)
