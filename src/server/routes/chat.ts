@@ -70,14 +70,16 @@ export function selectConfiguredSlotForChat(
   const features = extractRoutingFeatures(request);
   const { prompt, systemPrompt } = getPromptParts(body);
   const effort = readEffort(body);
+  const modelParam: string = body.model ?? "minirouter/auto";
+  const profile = routingProfile(modelParam, undefined);
   const decision = route(prompt, systemPrompt, request.maxOutputTokens, {
     config: DEFAULT_ROUTING_CONFIG,
     modelPricing: buildModelPricing(),
-    routingProfile: undefined,
+    routingProfile: profile,
     hasTools: features.requirements.toolCalling,
     effort,
   });
-  const explicitSlot = typeof body.model === "string" ? getSlotForRoutingModel(slots, body.model) : undefined;
+  const explicitSlot = getSlotForRoutingModel(slots, modelParam);
 
   if (explicitSlot) {
     if (features.requirements.vision && !explicitSlot.supportsVision) {
@@ -96,6 +98,7 @@ export function selectConfiguredSlotForChat(
     tier: decision.tier,
     slot: pickSlotForFeatures(slots, {
       tier: decision.tier,
+      profile,
       requirements: {
         vision: features.requirements.vision,
         toolCalling: features.requirements.toolCalling,

@@ -137,22 +137,10 @@ export class RulesStrategy implements RouterStrategy {
 
     const agenticScoreValue = ruleResult.agenticScore;
 
-    // --- Override: large context → force COMPLEX ---
-    if (estimatedTokens > config.overrides.maxTokensForceComplex) {
-      const decision = selectModel(
-        "COMPLEX",
-        0.95,
-        "rules",
-        `Input exceeds ${config.overrides.maxTokensForceComplex} tokens${profileSuffix}`,
-        tierConfigs,
-        modelPricing,
-        estimatedTokens,
-        maxOutputTokens,
-        routingProfile,
-        agenticScoreValue,
-      );
-      return { ...decision, tierConfigs, profile };
-    }
+    // Note: maxTokensForceComplex hard-override removed — long context is
+    // already scored by the tokenCount dimension (rules.ts). Forcing COMPLEX
+    // based solely on length caused simple prompts in long sessions to be
+    // misrouted to the strong model. See docs/routing-strategy.md.
 
     // Structured output detection
     const hasStructuredOutput = systemPrompt ? /json|structured|schema/i.test(systemPrompt) : false;
@@ -182,20 +170,9 @@ export class RulesStrategy implements RouterStrategy {
       }
     }
 
-    // effort hard-override → REASONING.
-    // Only "xhigh"/"max" (user explicitly wants the strongest model) override.
-    // "high" is the API default — Claude Code sends it on every request, so
-    // overriding on "high" would force every Claude Code request to glm.
-    // "low"/"medium" do not override — 14-dim score decides.
-    // Future: "low" should route to a free slot when one is configured.
-    if (options.effort === "xhigh" || options.effort === "max") {
-      const tierRank: Record<Tier, number> = { SIMPLE: 0, MEDIUM: 1, COMPLEX: 2, REASONING: 3 };
-      if (tierRank[tier] < tierRank.REASONING) {
-        reasoning += ` | effort:${options.effort} → REASONING`;
-        tier = "REASONING";
-        confidence = Math.max(confidence, 0.9);
-      }
-    }
+    // effort is fully decoupled from model selection — it is a client→API
+    // thinking-depth hint, passed through natively to the upstream. The router
+    // does NOT read effort for tier decisions. See docs/routing-strategy.md.
 
     // Add routing profile suffix to reasoning
     reasoning += profileSuffix;

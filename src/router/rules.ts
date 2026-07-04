@@ -262,27 +262,12 @@ export function classifyByRules(
     weightedScore += d.score * w;
   }
 
-  // Count reasoning markers for override — only check USER prompt, not system prompt
-  // This prevents system prompts with "step by step" from triggering REASONING for simple queries
-  const reasoningMatches = config.reasoningKeywords.filter((kw) =>
-    userText.includes(kw.toLowerCase()),
-  );
-
-  // Direct reasoning override: 2+ reasoning markers = high confidence REASONING
-  if (reasoningMatches.length >= 2) {
-    const confidence = calibrateConfidence(
-      Math.max(weightedScore, 0.3), // ensure positive for confidence calc
-      config.confidenceSteepness,
-    );
-    return {
-      score: weightedScore,
-      tier: "REASONING",
-      confidence: Math.max(confidence, 0.85),
-      signals,
-      agenticScore,
-      dimensions,
-    };
-  }
+  // Note: reasoning keyword hard-override (≥2 matches → REASONING) removed.
+  // reasoningMarkers is already a 14-dim scoring dimension (rules.ts) — the
+  // override bypassed the weighted score and caused prompts that merely
+  // mentioned "分析/规划" to be force-routed to REASONING regardless of actual
+  // difficulty. Now reasoning keywords contribute via the weighted score only.
+  // See docs/routing-strategy.md.
 
   // Map weighted score to tier using boundaries
   const { simpleMedium, mediumComplex, complexReasoning } = config.tierBoundaries;

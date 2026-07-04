@@ -61,10 +61,23 @@ function tierSlot(tier: Tier): ModelSlotName {
   return "strong";
 }
 
+/**
+ * Pick a model slot for the request.
+ *
+ * Profile semantics (see docs/routing-strategy.md):
+ *   - auto     → tier → slot (14-dim score decides; SIMPLE/MEDIUM→balanced, COMPLEX/REASONING→strong)
+ *   - eco      → balanced (flash) regardless of tier — cost-optimized
+ *   - premium  → strong (glm) regardless of tier — quality-optimized
+ *
+ * Vision requests always go to the vision slot first (for MiniCPM-V
+ * preprocessing) regardless of profile — vision is a capability requirement,
+ * not a difficulty signal.
+ */
 export function pickSlotForFeatures(
   slots: ModelSlots,
   input: {
     tier: Tier;
+    profile?: "auto" | "eco" | "premium";
     requirements: {
       vision: boolean;
       toolCalling: boolean;
@@ -72,13 +85,19 @@ export function pickSlotForFeatures(
     };
   },
 ): ModelSlot {
+  // Vision is a capability requirement — always the vision slot first.
   if (input.requirements.vision) {
     const visionSlot = slots.vision;
     if (visionSlot) return visionSlot;
     throw new Error("No configured vision slot can satisfy the request");
   }
 
+  // Profile-driven slot selection (eco/premium override tier).
+  const profileDefault: ModelSlotName | undefined =
+    input.profile === "eco" ? "balanced" : input.profile === "premium" ? "strong" : undefined;
+
   const preferred: ModelSlotName[] = [];
+  if (profileDefault) preferred.push(profileDefault);
   if (input.requirements.toolCalling || input.requirements.agentic) {
     preferred.push(input.tier === "COMPLEX" || input.tier === "REASONING" ? "strong" : "balanced");
   }

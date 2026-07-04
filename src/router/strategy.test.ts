@@ -147,26 +147,29 @@ describe("RulesStrategy", () => {
     expect(decision.reasoning).not.toContain("effort:");
   });
 
-  it("effort:xhigh hard-overrides tier to REASONING", () => {
+  it("effort:xhigh does NOT override tier (effort decoupled from model selection)", () => {
+    // effort is a client→API thinking-depth hint, passed through natively.
+    // It does NOT participate in tier/model selection. See docs/routing-strategy.md.
     const strategy = new RulesStrategy();
     const decision = strategy.route("hi", undefined, 100, {
       ...baseOptions,
       effort: "xhigh",
     });
 
-    expect(decision.tier).toBe("REASONING");
-    expect(decision.reasoning).toContain("effort:xhigh");
+    // "hi" scores SIMPLE; effort:xhigh must not change that
+    expect(decision.tier).toBe("SIMPLE");
+    expect(decision.reasoning).not.toContain("effort:");
   });
 
-  it("effort:max hard-overrides tier to REASONING", () => {
+  it("effort:max does NOT override tier (effort decoupled from model selection)", () => {
     const strategy = new RulesStrategy();
     const decision = strategy.route("hi", undefined, 100, {
       ...baseOptions,
       effort: "max",
     });
 
-    expect(decision.tier).toBe("REASONING");
-    expect(decision.reasoning).toContain("effort:max");
+    expect(decision.tier).toBe("SIMPLE");
+    expect(decision.reasoning).not.toContain("effort:");
   });
 
   it("effort:low does NOT override — 14-dim score decides", () => {
@@ -277,14 +280,18 @@ describe("Backward compatibility", () => {
     expect(simple.method).toBe("rules");
     expect(simple.model).toBeDefined();
 
-    // Reasoning prompt → REASONING tier
+    // Reasoning prompt — reasoning keywords now contribute via 14-dim score
+    // (no hard-override). "prove the theorem step by step" hits multiple
+    // reasoning markers → contributes to weighted score, but tier depends on
+    // the full 14-dim sum. Accept anything ≥ MEDIUM (no hard-override means
+    // it may not reach REASONING on score alone).
     const reasoning = route(
       "prove the theorem step by step using mathematical induction",
       undefined,
       4096,
       baseOptions,
     );
-    expect(reasoning.tier).toBe("REASONING");
+    expect(["MEDIUM", "COMPLEX", "REASONING"]).toContain(reasoning.tier);
     expect(reasoning.method).toBe("rules");
 
     // New fields are present

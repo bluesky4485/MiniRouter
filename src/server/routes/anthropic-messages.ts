@@ -29,13 +29,26 @@ type SlotConfig = { slot: ModelSlot; tier: RoutedTier; features: RoutingFeatures
  * Extract client-declared thinking effort from request body.
  * Anthropic: body.output_config.effort.
  * Official 5 levels: low | medium | high | xhigh | max.
- * Returns undefined when absent — router falls back to 14-dim score.
+ * Returns undefined when absent — effort is passed through to the upstream
+ * and does NOT participate in model selection. See docs/routing-strategy.md.
  */
 function readEffort(body: any): "low" | "medium" | "high" | "xhigh" | "max" | undefined {
   const e = body?.output_config?.effort;
   return e === "low" || e === "medium" || e === "high" || e === "xhigh" || e === "max"
     ? e
     : undefined;
+}
+
+/**
+ * Derive routing profile from the requested model name.
+ * minirouter/eco → eco (all flash), minirouter/premium → premium (all glm),
+ * otherwise auto (14-dim score decides). See docs/routing-strategy.md.
+ */
+function routingProfileFromModel(model: string): "auto" | "eco" | "premium" {
+  const normalized = model.toLowerCase();
+  if (normalized === "minirouter/eco" || normalized === "eco") return "eco";
+  if (normalized === "minirouter/premium" || normalized === "premium") return "premium";
+  return "auto";
 }
 
 function promptParts(request: ReturnType<typeof normalizeAnthropicMessagesRequest>): { prompt: string; systemPrompt?: string } {
@@ -182,14 +195,16 @@ export function selectConfiguredSlotForAnthropicMessages(
   const features = extractRoutingFeatures(request);
   const { prompt, systemPrompt } = promptParts(request);
   const effort = readEffort(body);
+  const modelParam = typeof body.model === "string" ? body.model : "minirouter/auto";
+  const profile = routingProfileFromModel(modelParam);
   const decision = route(prompt, systemPrompt, request.maxOutputTokens, {
     config: DEFAULT_ROUTING_CONFIG,
     modelPricing: buildModelPricing(),
-    routingProfile: undefined,
+    routingProfile: profile,
     hasTools: features.requirements.toolCalling,
     effort,
   });
-  const explicitSlot = typeof body.model === "string" ? getSlotForRoutingModel(slots, body.model) : undefined;
+  const explicitSlot = getSlotForRoutingModel(slots, modelParam);
 
   if (explicitSlot) {
     if (features.requirements.vision && !explicitSlot.supportsVision) {
@@ -209,6 +224,7 @@ export function selectConfiguredSlotForAnthropicMessages(
     tier: decision.tier,
     slot: pickSlotForFeatures(slots, {
       tier: decision.tier,
+      profile,
       requirements: {
         vision: features.requirements.vision,
         toolCalling: features.requirements.toolCalling,
