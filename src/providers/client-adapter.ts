@@ -136,7 +136,7 @@ function localMediaMaxBytes(): number {
   return 256 * 1024 * 1024;
 }
 
-function hasClientVisionContent(messages: unknown): boolean {
+export function hasClientVisionContent(messages: unknown): boolean {
   if (!Array.isArray(messages)) return false;
   return messages.some((message) => {
     if (typeof message !== "object" || message === null) return false;
@@ -306,7 +306,7 @@ function truncateText(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars)}\n[truncated for vision model]`;
 }
 
-function isVisionPart(part: unknown): boolean {
+export function isVisionPart(part: unknown): boolean {
   if (typeof part !== "object" || part === null) return false;
   const type = (part as Record<string, unknown>)["type"];
   return type === "image" || type === "video" || type === "image_url" || type === "video_url" || type === "input_image";
@@ -475,6 +475,53 @@ export function adaptAnthropicMessagesToMiniCpmVisionOpenAI(body: Record<string,
     max_tokens: Math.min(typeof body["max_tokens"] === "number" ? body["max_tokens"] : 2048, 2048),
   };
   return result;
+}
+
+/**
+ * OpenAI-native vision prompt adapter.
+ *
+ * Builds a MiniCPM-V vision-slot request from an OpenAI Chat body (image_url
+ * blocks). Does NOT convert Anthropic block types — use
+ * adaptAnthropicMessagesToMiniCpmVisionOpenAI for that.
+ */
+export function adaptOpenAIChatMessagesToMiniCpmVisionPrompt(body: Record<string, unknown>): Record<string, unknown> {
+  const messages = body["messages"];
+  if (!Array.isArray(messages)) {
+    return { model: body["model"], messages: [], stream: false, max_tokens: 2048 };
+  }
+
+  // Find the last user message with vision content (image_url / video_url).
+  let visionUserContent: unknown[] | undefined;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (typeof msg !== "object" || msg === null) continue;
+    const record = msg as Record<string, unknown>;
+    if (record["role"] !== "user") continue;
+    const content = record["content"];
+    if (!Array.isArray(content)) continue;
+    if (!content.some(isVisionPart)) continue;
+    visionUserContent = content;
+    break;
+  }
+
+  if (!visionUserContent || visionUserContent.length === 0) {
+    return { model: body["model"], messages: [], stream: false, max_tokens: 2048 };
+  }
+
+  const visionParts = visionUserContent.filter(isVisionPart);
+  const questionParts = selectVisionQuestionTextParts(visionUserContent);
+
+  const visionPromptMessages: unknown[] = [
+    { role: "system", content: DEFAULT_VISION_OBSERVER_PROMPT },
+    { role: "user", content: [...visionParts, ...questionParts] },
+  ];
+
+  return {
+    model: body["model"],
+    messages: visionPromptMessages,
+    stream: false,
+    max_tokens: Math.min(typeof body["max_tokens"] === "number" ? body["max_tokens"] : 2048, 2048),
+  };
 }
 
 function openAIContentToText(content: unknown): string {
