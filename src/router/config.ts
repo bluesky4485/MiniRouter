@@ -1035,7 +1035,7 @@ export const DEFAULT_ROUTING_CONFIG: RoutingConfig = {
     // Sigmoid steepness for confidence calibration
     confidenceSteepness: 12,
     // Below this confidence → ambiguous (null tier)
-    confidenceThreshold: 0.7,
+    confidenceThreshold: 0.55,
   },
 
   // ──────────────────────────────────────────────────────────────────────
