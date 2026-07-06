@@ -8,7 +8,6 @@ import { normalizeAnthropicMessagesRequest } from "../../protocols/anthropic-mes
 import { extractRoutingFeatures, type RoutingFeatures } from "../../routing/features/extractor.js";
 import { getSlotForRoutingModel, loadModelSlotsFromEnv, pickSlotForFeatures } from "../../providers/env.js";
 import { executeAnthropicMessages } from "../../providers/anthropic.js";
-import { materializeLocalMediaReferencesWithDiagnostics } from "../../providers/client-adapter.js";
 import type { ModelSlot } from "../../providers/types.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
 import { parseAnthropicUsage, toMutableUpstreamResponse } from "./chat.js";
@@ -32,7 +31,7 @@ type OptimizationLog = {
  * Extract client-declared thinking effort from request body.
  * Anthropic: body.output_config.effort.
  * Official 5 levels: low | medium | high | xhigh | max.
- * Returns undefined when absent ¡ª effort is passed through to the upstream
+ * Returns undefined when absent ï¿½ï¿½ effort is passed through to the upstream
  * and does NOT participate in model selection. See docs/routing-strategy.md.
  */
 function readEffort(body: any): "low" | "medium" | "high" | "xhigh" | "max" | undefined {
@@ -44,7 +43,7 @@ function readEffort(body: any): "low" | "medium" | "high" | "xhigh" | "max" | un
 
 /**
  * Derive routing profile from the requested model name.
- * minirouter/eco ¡ú eco (all flash), minirouter/premium ¡ú premium (all glm),
+ * minirouter/eco ï¿½ï¿½ eco (all flash), minirouter/premium ï¿½ï¿½ premium (all glm),
  * otherwise auto (14-dim score decides). See docs/routing-strategy.md.
  */
 function routingProfileFromModel(model: string): "auto" | "eco" | "premium" {
@@ -67,8 +66,8 @@ function promptParts(request: ReturnType<typeof normalizeAnthropicMessagesReques
     .filter((block) => block.type === "text")
     .map((block) => block.text)
     .join("\n");
-  // ·ÖÀàÆ÷Ö»¿´µ±Ç° user turn ¡ª ·ñÔò³¤»á»°Ã¿ÂÖ¶¼ÃüÖÐËùÓÐ¹Ø¼ü´Ê,
-  // ÓÀÔ¶Â·ÓÉµ½ REASONING¡£prompt ÈÔÓÃÍêÕû¶Ô»°ÀúÊ·×ö token ¹ÀËã¡£
+  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½Ç° user turn ï¿½ï¿½ ï¿½ï¿½ï¿½ò³¤»á»°Ã¿ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¹Ø¼ï¿½ï¿½ï¿½,
+  // ï¿½ï¿½Ô¶Â·ï¿½Éµï¿½ REASONINGï¿½ï¿½prompt ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô»ï¿½ï¿½ï¿½Ê·ï¿½ï¿½ token ï¿½ï¿½ï¿½ã¡£
   const classifierText = extractLastUserText(request.messages) ?? undefined;
   return { prompt, systemPrompt: systemPrompt || undefined, classifierText };
 }
@@ -199,14 +198,6 @@ export async function anthropicMessages(c: Context) {
   const auth = c.get("auth") as AuthResult;
   let body = await c.req.json();
   const requestId = randomUUID();
-  const localMedia = materializeLocalMediaReferencesWithDiagnostics(body, "anthropic-messages");
-  body = localMedia.body;
-  if (localMedia.status !== "no_path" && localMedia.status !== "no_text" && localMedia.status !== "no_messages") {
-    console.error(
-      `[MiniRouter] local media materialization status=${localMedia.status} path=${localMedia.filePath ?? "n/a"} bytes=${localMedia.bytes ?? "n/a"}`,
-    );
-  }
-
   const normalized = normalizeAnthropicMessagesRequest(body);
   const promptDigest = extractPromptDigest(normalized.messages);
   let configured: SlotConfig | null;
@@ -241,13 +232,13 @@ export async function anthropicMessages(c: Context) {
 
   if (isStreaming && upstream.ok && upstream.body) {
     const { passthrough, finalUsage } = createSseUsageTap(upstream.body, "anthropic");
-    // Á÷Ê½:·µ»Ø passthrough ¸ø¿Í»§¶Ë,Á÷½áÊøºóÒì²½Ð´ logUsage
+    // ï¿½ï¿½Ê½:ï¿½ï¿½ï¿½ï¿½ passthrough ï¿½ï¿½ï¿½Í»ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ì²½Ð´ logUsage
     const response = new Response(passthrough, {
       status: upstream.status,
       statusText: upstream.statusText,
       headers: new Headers(upstream.headers),
     });
-    // ²»×èÈûÏìÓ¦ ¡ª Á÷½áÊøºóÔÙÐ´ usage log
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ usage log
     finalUsage
       .then((u) => {
         try {
@@ -280,7 +271,7 @@ export async function anthropicMessages(c: Context) {
         }
       })
       .catch(() => {
-        // Á÷±»¿Í»§¶ËÖÐ¶ÏµÈ,²»Ð´ log
+        // ï¿½ï¿½ï¿½ï¿½ï¿½Í»ï¿½ï¿½ï¿½ï¿½Ð¶Ïµï¿½,ï¿½ï¿½Ð´ log
       });
     return response;
   }

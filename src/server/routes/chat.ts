@@ -20,7 +20,6 @@ import { executeOpenAICompatibleChat } from "../../providers/openai-compatible.j
 import { optimizeWithHeadroom } from "../../context/headroom.js";
 import { extractPromptDigest, extractLastUserText } from "../../routing/features/prompt-digest.js";
 import { createSseUsageTap } from "../sse-usage-tap.js";
-import { materializeLocalMediaReferencesWithDiagnostics } from "../../providers/client-adapter.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -298,14 +297,6 @@ export async function chatCompletions(c: Context) {
   let body = await c.req.json();
   trace("json_parsed");
   const requestId = randomUUID();
-  const localMedia = materializeLocalMediaReferencesWithDiagnostics(body, "openai-chat");
-  body = localMedia.body;
-  trace(`local_media:${localMedia.status}`);
-  if (localMedia.status !== "no_path" && localMedia.status !== "no_text" && localMedia.status !== "no_messages") {
-    console.error(
-      `[MiniRouter] local media materialization status=${localMedia.status} path=${localMedia.filePath ?? "n/a"} bytes=${localMedia.bytes ?? "n/a"}`,
-    );
-  }
   const modelParam: string = body.model ?? "minirouter/auto";
 
   if (!isRoutingModel(modelParam)) {
