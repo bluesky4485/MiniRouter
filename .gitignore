@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-e2e/
 .tmp-e2e/
+.tmp/
 *.tsbuildinfo
 .DS_Store
 .worktrees/

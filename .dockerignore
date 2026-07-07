@@ -13,4 +13,3 @@ deploy
 vitest.config.*
 eslint.config.*
 .prettierrc*
-tsconfig.json
