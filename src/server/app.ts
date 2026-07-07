@@ -27,14 +27,24 @@ import { getModelScore, listModelScores, updateModelScore } from "./routes/model
 import { debugRoute } from "./routes/debug-route.js";
 import {
   register,
+  adminOverview,
   adminListUsers,
+  adminCreateUser,
   adminGetUser,
+  adminUpdateUser,
+  adminListUserKeys,
+  adminCreateUserKey,
   adminCreateKey,
   adminRevokeKey,
   adminUsage,
   adminStats,
+  adminListChannels,
+  adminCreateChannel,
+  adminUpdateChannel,
+  adminDisableChannel,
 } from "./routes/admin.js";
 import { getUsageLogs, getUserUsageSummary } from "./routes/usage-logs.js";
+import { serveAdminDashboard } from "./routes/admin-dashboard.js";
 
 function serveModelsDashboard(c: Context) {
   const html = readFileSync(resolve(process.cwd(), "models/dashboard.html"), "utf8");
@@ -55,12 +65,13 @@ export function createApp(): Hono {
   app.get("/health", health);
   app.get("/health/ready", readiness);
 
-  // User registration (public in Phase 1, can be invite-only later)
-  app.post("/admin/register", register);
+  // User registration is authenticated under the admin router. Keep public
+  // model APIs available for the model dashboard.
   app.get("/api/models", listModelScores);
   app.get("/api/models/:id", getModelScore);
   app.get("/models/dashboard", serveModelsDashboard);
   app.get("/models/dashboard.html", serveModelsDashboard);
+  app.get("/admin/dashboard", serveAdminDashboard);
   app.post("/debug/route", debugRoute);
 
   // ─── Authenticated routes ────────────────────────────────────────
@@ -75,12 +86,22 @@ export function createApp(): Hono {
   api.get("/v1/models", listModels);
 
   // Admin endpoints
+  api.post("/admin/register", register);
+  api.get("/admin/overview", adminOverview);
   api.get("/admin/users", adminListUsers);
+  api.post("/admin/users", adminCreateUser);
   api.get("/admin/users/:id", adminGetUser);
+  api.patch("/admin/users/:id", adminUpdateUser);
+  api.get("/admin/users/:id/keys", adminListUserKeys);
+  api.post("/admin/users/:id/keys", adminCreateUserKey);
   api.post("/admin/keys", adminCreateKey);
   api.delete("/admin/keys/:id", adminRevokeKey);
   api.get("/admin/usage", adminUsage);
   api.get("/admin/stats", adminStats);
+  api.get("/admin/channels", adminListChannels);
+  api.post("/admin/channels", adminCreateChannel);
+  api.patch("/admin/channels/:id", adminUpdateChannel);
+  api.delete("/admin/channels/:id", adminDisableChannel);
   api.put("/api/models/:id", updateModelScore);
 
   // Usage log query endpoints

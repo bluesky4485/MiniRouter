@@ -41,4 +41,19 @@ describe("createApp", () => {
     expect(html).toContain("MiniRouter");
     expect(html).toContain("/api/models");
   });
+
+  it("serves the admin dashboard shell so it can collect an admin token", async () => {
+    const { createApp } = await import("./app.js");
+    const app = createApp();
+
+    const response = await app.request("/admin/dashboard");
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(html).toContain("MiniRouter Admin");
+    expect(html).toContain("Users");
+    expect(html).toContain("Provider Channels");
+    expect(html).toContain("Usage Logs");
+  });
 });

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniRouter Admin</title>
+<style>
+  :root {
+    --bg:#eef1f4;
+    --ink:#15191f;
+    --muted:#66717f;
+    --panel:#fbfcfd;
+    --panel-2:#f4f6f8;
+    --line:#d8dee6;
+    --line-dark:#b8c0cc;
+    --accent:#0f766e;
+    --accent-dark:#115e59;
+    --blue:#1d4ed8;
+    --green:#15803d;
+    --red:#b91c1c;
+    --amber:#b45309;
+    --shadow:0 14px 35px rgba(21,25,31,.08);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    color:var(--ink);
+    background:
+      linear-gradient(90deg, rgba(15,118,110,.06) 1px, transparent 1px),
+      linear-gradient(rgba(15,118,110,.05) 1px, transparent 1px),
+      var(--bg);
+    background-size:28px 28px;
+    font-family:"Aptos","Segoe UI",Candara,sans-serif;
+  }
+  header {
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:18px;
+    align-items:center;
+    padding:18px 22px;
+    background:rgba(251,252,253,.92);
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    z-index:3;
+    backdrop-filter:blur(12px);
+  }
+  h1 { margin:0; font-size:22px; letter-spacing:.02em; }
+  h2 { margin:0; font-size:15px; }
+  p { margin:0; }
+  button, input, select {
+    font:inherit;
+    border:1px solid var(--line-dark);
+    border-radius:6px;
+    padding:8px 10px;
+    background:#fff;
+    color:var(--ink);
+  }
+  button {
+    border-color:var(--accent-dark);
+    background:var(--accent);
+    color:#fff;
+    cursor:pointer;
+    font-weight:700;
+  }
+  button:hover { background:var(--accent-dark); }
+  button.secondary { background:#fff; color:var(--ink); border-color:var(--line-dark); }
+  button.danger { background:#fff; color:var(--red); border-color:#efb4b4; }
+  input:focus, select:focus { outline:2px solid rgba(15,118,110,.2); border-color:var(--accent); }
+  main {
+    display:grid;
+    grid-template-columns:minmax(320px,420px) 1fr;
+    gap:16px;
+    padding:18px;
+  }
+  .subtitle { color:var(--muted); margin-top:4px; font-size:13px; }
+  .auth { display:grid; gap:8px; min-width:390px; }
+  .auth-row { display:flex; gap:8px; align-items:center; }
+  .auth-row input { flex:1; min-width:230px; }
+  .status { font-size:12px; color:var(--muted); }
+  .status.ok { color:var(--green); font-weight:700; }
+  .status.bad { color:var(--red); font-weight:700; }
+  .notice {
+    grid-column:1/-1;
+    min-height:20px;
+    color:var(--red);
+    font-size:13px;
+  }
+  .stack { display:grid; gap:16px; }
+  .panel {
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .panel-head {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    background:var(--panel-2);
+  }
+  .panel-body { padding:14px; }
+  .cards {
+    grid-column:1/-1;
+    display:grid;
+    grid-template-columns:repeat(5,minmax(140px,1fr));
+    gap:12px;
+  }
+  .card {
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px;
+    box-shadow:var(--shadow);
+  }
+  .label { color:var(--muted); font-size:12px; }
+  .value { font-size:24px; font-weight:800; margin-top:5px; font-variant-numeric:tabular-nums; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .form-grid .wide { grid-column:1/-1; }
+  .form-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+  .table-wrap { overflow:auto; max-height:390px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th, td { padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { position:sticky; top:0; background:#f8fafc; color:var(--muted); z-index:1; }
+  tr:hover td { background:#f7fbfa; }
+  .pill {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:2px 8px;
+    font-size:11px;
+    white-space:nowrap;
+    background:#fff;
+  }
+  .pill.ok { color:var(--green); border-color:#b7dfc2; }
+  .pill.bad { color:var(--red); border-color:#efb4b4; }
+  .pill.warn { color:var(--amber); border-color:#f0d39a; }
+  .muted { color:var(--muted); }
+  .mono { font-family:"Cascadia Mono","SF Mono",Consolas,monospace; }
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .hidden { display:none !important; }
+  .login-screen {
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    padding:24px;
+  }
+  .login-card {
+    width:min(440px,100%);
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    box-shadow:var(--shadow);
+    padding:22px;
+    display:grid;
+    gap:14px;
+  }
+  .login-card h1 { font-size:24px; }
+  .login-card input, .login-card button { width:100%; }
+  .tiny-actions { display:flex; gap:6px; flex-wrap:wrap; }
+  .tiny-actions button { padding:5px 8px; font-size:11px; }
+  dialog {
+    border:1px solid var(--line);
+    border-radius:8px;
+    box-shadow:0 25px 70px rgba(21,25,31,.24);
+    width:min(720px,92vw);
+    padding:0;
+  }
+  dialog::backdrop { background:rgba(20,24,29,.45); }
+  .dialog-body { padding:16px; }
+  .secret {
+    background:#101418;
+    color:#d1fae5;
+    border-radius:6px;
+    padding:12px;
+    white-space:pre-wrap;
+    word-break:break-all;
+  }
+  .details-row td { background:#f8fafc; }
+  .route-detail {
+    display:grid;
+    gap:10px;
+    max-width:980px;
+  }
+  .detail-grid {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(150px,1fr));
+    gap:8px;
+  }
+  .detail-box {
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:#fff;
+    padding:8px;
+  }
+  .debug-json {
+    background:#101418;
+    color:#d1fae5;
+    border-radius:6px;
+    padding:10px;
+    max-height:220px;
+    overflow:auto;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  @media (max-width:1100px) {
+    header, main, .split { grid-template-columns:1fr; }
+    .cards { grid-template-columns:repeat(2,minmax(140px,1fr)); }
+    .auth { min-width:0; }
+  }
+  @media (max-width:640px) {
+    .cards, .form-grid { grid-template-columns:1fr; }
+    .auth-row { flex-direction:column; align-items:stretch; }
+  }
+</style>
+</head>
+<body>
+<section id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div>
+      <h1>MiniRouter Admin</h1>
+      <p class="subtitle">Sign in with an admin key to manage users, channels, and usage.</p>
+    </div>
+    <input id="loginToken" type="password" placeholder="Admin key: mr_sk_..." onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Sign In</button>
+    <div id="loginStatus" class="status">Admin access required.</div>
+  </div>
+</section>
+
+<div id="appShell" class="hidden">
+<header>
+  <div>
+    <h1>MiniRouter Admin</h1>
+    <p class="subtitle">Lightweight control plane for users, keys, spend, and provider channels.</p>
+  </div>
+  <div class="auth">
+    <div class="auth-row">
+      <input id="token" type="password" placeholder="Paste admin key: mr_sk_...">
+      <button onclick="saveToken()">Save Token</button>
+      <button class="secondary" onclick="refreshAll()">Refresh</button>
+      <button class="secondary" onclick="logout()">Logout</button>
+    </div>
+    <div id="authStatus" class="status">No admin token loaded.</div>
+  </div>
+</header>
+
+<main>
+  <div id="notice" class="notice"></div>
+
+  <section class="cards" aria-label="Overview">
+    <div class="card"><div class="label">Today Spend</div><div id="todayCost" class="value">$0.0000</div></div>
+    <div class="card"><div class="label">Month Spend</div><div id="monthCost" class="value">$0.0000</div></div>
+    <div class="card"><div class="label">Today Requests</div><div id="todayRequests" class="value">0</div></div>
+    <div class="card"><div class="label">Active Users</div><div id="activeUsers" class="value">0</div></div>
+    <div class="card"><div class="label">Active Keys</div><div id="activeKeys" class="value">0</div></div>
+  </section>
+
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Users</h2>
+        <span class="muted" id="userCount">0 users</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <input id="userEmail" class="wide" type="text" placeholder="email@example.com">
+          <input id="userName" type="text" placeholder="display name">
+          <select id="userRole"><option>user</option><option>admin</option><option>superadmin</option></select>
+          <select id="userProfile"><option>auto</option><option>eco</option><option>premium</option></select>
+          <input id="dailyLimit" type="number" min="0" step="0.01" placeholder="daily USD limit">
+        </div>
+        <div class="form-actions">
+          <button onclick="createUser()">Create User</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>User</th><th>Role</th><th>Profile</th><th>Daily Limit</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="users"><tr><td colspan="6" class="muted">Load an admin token to view users.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>User Keys</h2>
+        <span class="muted" id="selectedUserLabel">Select a user</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <input id="keyName" type="text" placeholder="key name">
+          <input id="keyDailyLimit" type="number" min="0" step="0.01" placeholder="key daily USD limit">
+          <label><input id="scopeChat" type="checkbox" checked> chat</label>
+          <label><input id="scopeModels" type="checkbox" checked> models</label>
+          <label><input id="scopeUsage" type="checkbox" checked> usage</label>
+          <label><input id="scopeManage" type="checkbox"> manage</label>
+        </div>
+        <div class="form-actions">
+          <button onclick="createKeyForSelected()">Create Key</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Prefix</th><th>Scopes</th><th>Limit</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="keys"><tr><td colspan="6" class="muted">No user selected.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Provider Channels</h2>
+        <span class="muted">DB-managed channels override env slots.</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <select id="slot"><option>balanced</option><option>fast</option><option>strong</option><option>vision</option></select>
+          <select id="providerKind"><option>openai-compatible</option><option>anthropic</option><option>auto</option></select>
+          <input id="provider" type="text" placeholder="provider label">
+          <input id="modelId" type="text" placeholder="upstream model id">
+          <input id="pricingModelId" type="text" placeholder="pricing model id (optional)">
+          <input id="endpointUrl" class="wide" type="text" placeholder="https://api.example.com/v1">
+          <input id="providerKey" class="wide" type="password" placeholder="provider API key">
+          <input id="weight" type="number" value="1" min="1" step="1" placeholder="weight">
+          <input id="contextWindow" type="number" min="0" step="1" placeholder="context window">
+          <label><input id="supportsTools" type="checkbox" checked> supports tools</label>
+          <label><input id="supportsVision" type="checkbox"> supports vision</label>
+        </div>
+        <div class="form-actions">
+          <button onclick="createChannel()">Add Channel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Slot</th><th>Provider</th><th>Model</th><th>Pricing</th><th>Kind</th><th>Weight</th><th>Health</th><th>Actions</th></tr></thead>
+          <tbody id="channels"><tr><td colspan="7" class="muted">No channels loaded.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Usage Logs</h2>
+        <div class="auth-row">
+          <select id="logStatus" onchange="loadLogs()"><option value="">all</option><option>success</option><option>error</option><option>rate_limited</option></select>
+          <input id="logModel" type="text" placeholder="model filter" onkeydown="if(event.key==='Enter')loadLogs()">
+          <button class="secondary" onclick="loadLogs()">Filter</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="max-height:520px">
+        <table>
+          <thead><tr><th>Time</th><th>Route</th><th>Status</th><th>Tokens</th><th>Cost</th><th>Latency</th><th>User Message</th><th>Details</th></tr></thead>
+          <tbody id="logs"><tr><td colspan="7" class="muted">No usage loaded.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<dialog id="secretDialog">
+  <div class="panel-head">
+    <h2>Save This Key Now</h2>
+    <button class="secondary" onclick="$('secretDialog').close()">Close</button>
+  </div>
+  <div class="dialog-body">
+    <p class="muted" style="margin-bottom:10px">The full API key is only shown once.</p>
+    <pre id="secretValue" class="secret"></pre>
+  </div>
+</dialog>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let selectedUserId = "";
+let selectedUserEmail = "";
+
+function token() { return sessionStorage.getItem("minirouter_admin_token") || ""; }
+async function login() {
+  sessionStorage.setItem("minirouter_admin_token", $("loginToken").value.trim());
+  $("token").value = token();
+  await refreshAll();
+}
+async function saveToken() {
+  sessionStorage.setItem("minirouter_admin_token", $("token").value.trim());
+  $("loginToken").value = token();
+  await refreshAll();
+}
+function logout() {
+  sessionStorage.removeItem("minirouter_admin_token");
+  selectedUserId = "";
+  selectedUserEmail = "";
+  $("token").value = "";
+  $("loginToken").value = "";
+  showLogin("Logged out.", "");
+}
+function showLogin(message, state = "bad") {
+  $("appShell").classList.add("hidden");
+  $("loginScreen").classList.remove("hidden");
+  $("loginStatus").textContent = message || "Admin access required.";
+  $("loginStatus").className = "status " + (state || "");
+}
+function showApp() {
+  $("loginScreen").classList.add("hidden");
+  $("appShell").classList.remove("hidden");
+}
+function setNotice(message, bad = true) {
+  $("notice").textContent = message || "";
+  $("notice").style.color = bad ? "var(--red)" : "var(--green)";
+}
+function setAuthStatus(message, state) {
+  $("authStatus").textContent = message;
+  $("authStatus").className = "status " + (state || "");
+}
+function headers() {
+  return { authorization: "Bearer " + token(), "content-type": "application/json" };
+}
+function money(value) { return "$" + Number(value || 0).toFixed(4); }
+function beijingTime(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(value)).replace(/\//g, "-");
+}
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m]));
+}
+function parseRoutingDebug(value) {
+  if (!value) return null;
+  try { return typeof value === "string" ? JSON.parse(value) : value; } catch { return null; }
+}
+function routeSummary(l) {
+  const requested = l.requestedModel || "(unknown request)";
+  const slot = l.selectedSlot || "-";
+  const tier = l.tier || "-";
+  const profile = l.profile || "-";
+  return `
+    <strong>${escapeHtml(requested)}</strong>
+    <div class="muted">${escapeHtml(profile)} / ${escapeHtml(tier)} -> ${escapeHtml(slot)}</div>
+    <div class="mono">${escapeHtml(l.model)}</div>
+  `;
+}
+function debugScore(debug) {
+  if (!debug || typeof debug !== "object") return "-";
+  const score = debug.score ?? debug.finalScore ?? debug.totalScore;
+  return typeof score === "number" ? score.toFixed(3) : "-";
+}
+function debugSignals(debug) {
+  if (!debug || typeof debug !== "object") return "-";
+  const signals = debug.signals;
+  if (Array.isArray(signals)) return signals.slice(0, 8).join(", ");
+  if (signals && typeof signals === "object") {
+    return Object.entries(signals)
+      .filter(([, value]) => !!value)
+      .map(([key]) => key)
+      .slice(0, 8)
+      .join(", ") || "-";
+  }
+  return "-";
+}
+function logDetails(l) {
+  const debug = parseRoutingDebug(l.routingDebug);
+  const featureFlags = [
+    l.hasTools ? "tools" : null,
+    l.hasVision ? "vision" : null,
+    l.hasAgentic ? "agentic" : null,
+    l.isStreaming ? "stream" : null,
+  ].filter(Boolean).join(", ") || "none";
+  const debugText = debug ? JSON.stringify(debug, null, 2) : (l.routingDebug || "No routing debug stored.");
+  return `
+    <tr id="logDetail-${l.id}" class="details-row hidden">
+      <td colspan="8">
+        <div class="route-detail">
+          <div class="detail-grid">
+            <div class="detail-box"><div class="label">Entry Model</div><div>${escapeHtml(l.requestedModel || "-")}</div></div>
+            <div class="detail-box"><div class="label">Selected Slot</div><div>${escapeHtml(l.selectedSlot || "-")}</div></div>
+            <div class="detail-box"><div class="label">Final Model</div><div>${escapeHtml(l.model)}</div></div>
+            <div class="detail-box"><div class="label">Provider Channel</div><div class="mono">${escapeHtml(l.providerInstanceId || "-")}</div></div>
+            <div class="detail-box"><div class="label">Tier / Profile</div><div>${escapeHtml(l.tier || "-")} / ${escapeHtml(l.profile || "-")}</div></div>
+            <div class="detail-box"><div class="label">Routing Score</div><div>${escapeHtml(debugScore(debug))}</div></div>
+            <div class="detail-box"><div class="label">Features</div><div>${escapeHtml(featureFlags)}</div></div>
+            <div class="detail-box"><div class="label">Effort</div><div>${escapeHtml(l.effort || "-")}</div></div>
+          </div>
+          <div class="detail-box">
+            <div class="label">Rule Signals</div>
+            <div>${escapeHtml(debugSignals(debug))}</div>
+          </div>
+          <pre class="debug-json">${escapeHtml(debugText)}</pre>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+function toggleLogDetails(id) {
+  const row = $("logDetail-" + id);
+  if (row) row.classList.toggle("hidden");
+}
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    cache: "no-store",
+    headers: { ...headers(), ...(options.headers || {}) },
+  });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!res.ok) throw new Error(data?.error?.message || text || res.statusText);
+  return data;
+}
+function scopesFromForm() {
+  const scopes = [];
+  if ($("scopeChat").checked) scopes.push("chat");
+  if ($("scopeModels").checked) scopes.push("models");
+  if ($("scopeUsage").checked) scopes.push("usage");
+  if ($("scopeManage").checked) scopes.push("manage");
+  return scopes;
+}
+async function loadOverview() {
+  const o = await api("/admin/overview");
+  $("todayCost").textContent = money(o.today.totalCostUsd);
+  $("monthCost").textContent = money(o.month.totalCostUsd);
+  $("todayRequests").textContent = o.today.requests;
+  $("activeUsers").textContent = o.activeUsers;
+  $("activeKeys").textContent = o.activeKeys;
+  setAuthStatus("Admin token accepted.", "ok");
+}
+async function loadUsers() {
+  const payload = await api("/admin/users?limit=200");
+  $("userCount").textContent = `${payload.data.length} users`;
+  $("users").innerHTML = payload.data.map((u) => `
+    <tr>
+      <td><strong>${escapeHtml(u.email)}</strong><div class="muted">${escapeHtml(u.name || u.id)}</div></td>
+      <td><span class="pill">${escapeHtml(u.role)}</span></td>
+      <td>${escapeHtml(u.routingProfile)}</td>
+      <td>${u.spendLimitDailyUsd == null ? "-" : money(u.spendLimitDailyUsd)}</td>
+      <td><span class="pill ${u.isActive ? "ok" : "bad"}">${u.isActive ? "active" : "disabled"}</span></td>
+      <td class="tiny-actions">
+        <button class="secondary" onclick="selectUser('${u.id}','${escapeHtml(u.email)}')">Keys</button>
+        <button class="secondary" onclick="toggleUser('${u.id}',${u.isActive ? "false" : "true"})">${u.isActive ? "Disable" : "Enable"}</button>
+      </td>
+    </tr>`).join("") || '<tr><td colspan="6" class="muted">No users yet.</td></tr>';
+}
+async function selectUser(userId, email) {
+  selectedUserId = userId;
+  selectedUserEmail = email;
+  $("selectedUserLabel").textContent = email;
+  await loadKeys();
+}
+async function loadKeys() {
+  if (!selectedUserId) return;
+  const payload = await api(`/admin/users/${selectedUserId}/keys`);
+  $("keys").innerHTML = payload.data.map((k) => `
+    <tr>
+      <td>${escapeHtml(k.name || "-")}</td>
+      <td class="mono">${escapeHtml(k.keyPrefix)}</td>
+      <td>${k.scopes.map((s) => `<span class="pill">${escapeHtml(s)}</span>`).join(" ")}</td>
+      <td>${k.spendLimitDailyOverrideUsd == null ? "-" : money(k.spendLimitDailyOverrideUsd)}</td>
+      <td><span class="pill ${k.isActive ? "ok" : "bad"}">${k.isActive ? "active" : "revoked"}</span></td>
+      <td class="tiny-actions"><button class="danger" onclick="revokeKey('${k.id}')">Revoke</button></td>
+    </tr>`).join("") || '<tr><td colspan="6" class="muted">No keys for this user.</td></tr>';
+}
+async function createUser() {
+  await api("/admin/users", { method:"POST", body:JSON.stringify({
+    email:$("userEmail").value.trim(),
+    name:$("userName").value.trim(),
+    role:$("userRole").value,
+    routingProfile:$("userProfile").value,
+    spendLimitDailyUsd:$("dailyLimit").value ? Number($("dailyLimit").value) : null
+  }) });
+  $("userEmail").value = "";
+  $("userName").value = "";
+  $("dailyLimit").value = "";
+  await refreshAll();
+}
+async function toggleUser(userId, active) {
+  await api(`/admin/users/${userId}`, { method:"PATCH", body:JSON.stringify({ isActive: active }) });
+  await loadUsers();
+}
+async function createKeyForSelected() {
+  if (!selectedUserId) throw new Error("Select a user first.");
+  const payload = await api(`/admin/users/${selectedUserId}/keys`, { method:"POST", body:JSON.stringify({
+    name:$("keyName").value.trim() || "dashboard",
+    scopes:scopesFromForm(),
+    spendLimitDailyOverrideUsd:$("keyDailyLimit").value ? Number($("keyDailyLimit").value) : undefined
+  }) });
+  $("secretValue").textContent = payload.key;
+  $("secretDialog").showModal();
+  $("keyName").value = "";
+  $("keyDailyLimit").value = "";
+  await loadKeys();
+  await loadOverview();
+}
+async function revokeKey(keyId) {
+  await api(`/admin/keys/${keyId}`, { method:"DELETE" });
+  await loadKeys();
+  await loadOverview();
+}
+async function loadChannels() {
+  const payload = await api("/admin/channels");
+  $("channels").innerHTML = payload.data.map((c) => `
+    <tr>
+      <td><span class="pill">${escapeHtml(c.slot)}</span></td>
+      <td>${escapeHtml(c.provider)}</td>
+      <td><strong>${escapeHtml(c.model)}</strong><div class="muted mono">${escapeHtml(c.id)}</div></td>
+      <td>${escapeHtml(c.pricingModelId || "alias/default")}</td>
+      <td>${escapeHtml(c.providerKind)}</td>
+      <td>${Number(c.weight || 1)}</td>
+      <td><span class="pill ${c.isHealthy ? "ok" : "bad"}">${c.isHealthy ? "healthy" : "disabled"}</span></td>
+      <td class="tiny-actions"><button class="danger" onclick="disableChannel('${c.id}')">Disable</button></td>
+    </tr>`).join("") || '<tr><td colspan="8" class="muted">No DB-managed channels. Env slots will be used.</td></tr>';
+}
+async function createChannel() {
+  await api("/admin/channels", { method:"POST", body:JSON.stringify({
+    slot:$("slot").value,
+    providerKind:$("providerKind").value,
+    provider:$("provider").value.trim(),
+    modelId:$("modelId").value.trim(),
+    pricingModelId:$("pricingModelId").value.trim() || undefined,
+    endpointUrl:$("endpointUrl").value.trim(),
+    apiKey:$("providerKey").value.trim(),
+    weight:Number($("weight").value || 1),
+    contextWindowTokens:$("contextWindow").value ? Number($("contextWindow").value) : undefined,
+    supportsTools:$("supportsTools").checked,
+    supportsVision:$("supportsVision").checked
+  }) });
+  $("providerKey").value = "";
+  await loadChannels();
+}
+async function disableChannel(channelId) {
+  await api(`/admin/channels/${channelId}`, { method:"DELETE" });
+  await loadChannels();
+}
+async function loadLogs() {
+  const params = new URLSearchParams({ limit:"50" });
+  if ($("logStatus").value) params.set("status", $("logStatus").value);
+  if ($("logModel").value.trim()) params.set("model", $("logModel").value.trim());
+  const payload = await api("/api/usage/logs?" + params.toString());
+  $("logs").innerHTML = payload.data.map((l) => `
+    <tr>
+      <td class="mono" title="${escapeHtml(l.createdAt)}">${escapeHtml(beijingTime(l.createdAt))}</td>
+      <td>${routeSummary(l)}</td>
+      <td><span class="pill ${l.status === "success" ? "ok" : "warn"}">${escapeHtml(l.status)}</span></td>
+      <td class="mono">${Number(l.inputTokens)}/${Number(l.outputTokens)}</td>
+      <td class="mono">${money(l.costUsd)}</td>
+      <td class="mono">${l.latencyMs ?? "-"}</td>
+      <td title="Last user text, truncated to 200 chars">${escapeHtml(l.promptDigest || "(no text user message)")}</td>
+      <td><button class="secondary" onclick="toggleLogDetails(${Number(l.id)})">Route</button></td>
+    </tr>
+    ${logDetails(l)}`).join("") || '<tr><td colspan="8" class="muted">No usage logs.</td></tr>';
+}
+async function refreshAll() {
+  try {
+    setNotice("");
+    if (!token()) {
+      setAuthStatus("No admin token loaded.", "bad");
+      showLogin("Admin access required.", "bad");
+      return;
+    }
+    await Promise.all([loadOverview(), loadUsers(), loadChannels(), loadLogs()]);
+    if (selectedUserId) await loadKeys();
+    showApp();
+  } catch (error) {
+    setAuthStatus("Admin token rejected or API unavailable.", "bad");
+    setNotice(error.message || String(error));
+    showLogin(error.message || "Admin token rejected or API unavailable.", "bad");
+  }
+}
+$("token").value = token();
+$("loginToken").value = token();
+refreshAll();
+</script>
+</body>
+</html>
