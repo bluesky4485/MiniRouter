@@ -1,12 +1,28 @@
 # MiniRouter local mode
+# For lightweight-cloud production, set MINIROUTER_SOLO=false and create users
+# plus API keys through the authenticated admin API or a bootstrap script.
 MINIROUTER_SOLO=true
 BLOCKRUN_PROXY_PORT=8402
+
+# Cost accounting
+# Model registry prices are stored as CNY per million tokens. Usage logs store
+# estimated USD cost using this conversion rate.
+MINIROUTER_CNY_PER_USD=7.2
+
+# Optional model pricing aliases. Keys are upstream/logged model names; values
+# are canonical model_scores.id values used for price lookup.
+# MINIROUTER_PRICE_MODEL_ALIASES={"glm-5.2":"zhipu/glm-5.2","deepseek-v4-flash":"deepseek/v4-flash"}
 
 # Provider values:
 #   Omit MINIROUTER_<SLOT>_PROVIDER for auto mode.
 #   OpenAI Chat input -> {BASE_URL}/chat/completions
 #   Anthropic Messages input -> {BASE_URL}/messages
 #   Set PROVIDER=anthropic only for native Anthropic endpoints.
+#
+# Production note:
+# Env slots remain the compatibility fallback. Once provider channels are added
+# through /admin/channels, MiniRouter prefers healthy DB-managed channels for
+# the selected slot and uses these env slots only when no managed channel exists.
 
 # FAST is optional in the MVP. Leave it unset until a cheap local/hosted fast
 # model is ready; simple requests will fall back to BALANCED.
