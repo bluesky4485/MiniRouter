@@ -112,6 +112,40 @@ export async function revokeApiKey(keyId: string): Promise<void> {
     .where(eq(apiKeys.id, keyId));
 }
 
+export async function listApiKeysForUser(userId: string) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: apiKeys.id,
+      keyPrefix: apiKeys.keyPrefix,
+      name: apiKeys.name,
+      scopes: apiKeys.scopes,
+      rateLimitRpmOverride: apiKeys.rateLimitRpmOverride,
+      spendLimitDailyOverrideUsd: apiKeys.spendLimitDailyOverrideUsd,
+      lastUsedAt: apiKeys.lastUsedAt,
+      expiresAt: apiKeys.expiresAt,
+      isActive: apiKeys.isActive,
+      createdAt: apiKeys.createdAt,
+    })
+    .from(apiKeys)
+    .where(eq(apiKeys.userId, userId));
+
+  return rows.map((row) => ({
+    ...row,
+    scopes: parseScopes(row.scopes),
+    isActive: !!row.isActive,
+  }));
+}
+
+function parseScopes(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((scope) => typeof scope === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * API Key Authentication Provider.
  *
@@ -134,10 +168,16 @@ export class ApiKeyAuthProvider implements AuthProvider {
         apiKeyId: apiKeys.id,
         keyHash: apiKeys.keyHash,
         scopes: apiKeys.scopes,
+        rateLimitRpmOverride: apiKeys.rateLimitRpmOverride,
+        spendLimitDailyOverrideUsd: apiKeys.spendLimitDailyOverrideUsd,
         isActive: apiKeys.isActive,
         expiresAt: apiKeys.expiresAt,
         userId: users.id,
         routingProfile: users.routingProfile,
+        rateLimitRpm: users.rateLimitRpm,
+        rateLimitRpd: users.rateLimitRpd,
+        spendLimitDailyUsd: users.spendLimitDailyUsd,
+        spendLimitMonthlyUsd: users.spendLimitMonthlyUsd,
         userIsActive: users.isActive,
         userRole: users.role,
       })
@@ -167,12 +207,23 @@ export class ApiKeyAuthProvider implements AuthProvider {
       .set({ lastUsedAt: new Date().toISOString() })
       .where(eq(apiKeys.id, record.apiKeyId));
 
+    const scopes = parseScopes(record.scopes);
+    if (scopes.length === 0 && record.scopes.trim() !== "[]") {
+      throw new AuthError("API key scopes are invalid", 401);
+    }
+
     return {
       userId: record.userId,
       apiKeyId: record.apiKeyId,
-      scopes: JSON.parse(record.scopes),
+      scopes,
       routingProfile: record.routingProfile,
       role: record.userRole,
+      rateLimitRpm: record.rateLimitRpm,
+      rateLimitRpd: record.rateLimitRpd,
+      spendLimitDailyUsd: record.spendLimitDailyUsd,
+      spendLimitMonthlyUsd: record.spendLimitMonthlyUsd,
+      keyRateLimitRpmOverride: record.rateLimitRpmOverride,
+      keySpendLimitDailyOverrideUsd: record.spendLimitDailyOverrideUsd,
       method: "apikey",
     };
   }
@@ -183,15 +234,19 @@ export class ApiKeyAuthProvider implements AuthProvider {
    */
   private extractKey(headers: Record<string, string | undefined>): string | null {
     const auth = headers["authorization"];
-    if (!auth) return null;
+    const apiKeyHeader = headers["x-api-key"];
+    if (!auth && !apiKeyHeader) return null;
 
     // "Bearer mr_sk_xxxx"
-    const match = auth.match(/^Bearer\s+(mr_sk_[a-f0-9]+)$/i);
+    const match = auth?.match(/^Bearer\s+(mr_sk_[a-f0-9]+)$/i);
     if (match) return match[1];
 
     // Also support "mr_sk_xxxx" directly (no Bearer prefix) for x-api-key header
-    if (auth.startsWith("mr_sk_") && /^mr_sk_[a-f0-9]+$/.test(auth)) {
+    if (auth?.startsWith("mr_sk_") && /^mr_sk_[a-f0-9]+$/.test(auth)) {
       return auth;
+    }
+    if (apiKeyHeader?.startsWith("mr_sk_") && /^mr_sk_[a-f0-9]+$/.test(apiKeyHeader)) {
+      return apiKeyHeader;
     }
 
     return null;

@@ -12,6 +12,10 @@ export interface CreateUserInput {
   name?: string;
   routingProfile?: "eco" | "auto" | "premium";
   role?: "user" | "admin" | "superadmin";
+  rateLimitRpm?: number;
+  rateLimitRpd?: number;
+  spendLimitDailyUsd?: number | null;
+  spendLimitMonthlyUsd?: number | null;
 }
 
 export interface UserRecord {
@@ -38,6 +42,10 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
     name: input.name ?? null,
     routingProfile: input.routingProfile ?? "auto",
     routingStrategy: "rules",
+    rateLimitRpm: input.rateLimitRpm ?? 60,
+    rateLimitRpd: input.rateLimitRpd ?? 10000,
+    spendLimitDailyUsd: input.spendLimitDailyUsd ?? null,
+    spendLimitMonthlyUsd: input.spendLimitMonthlyUsd ?? null,
     role: input.role ?? "user",
     isActive: 1,
     createdAt: now,
@@ -67,4 +75,33 @@ export async function getUserByEmail(email: string): Promise<UserRecord | undefi
 export async function listUsers(limit = 50, offset = 0): Promise<UserRecord[]> {
   const db = getDb();
   return db.select().from(users).limit(limit).offset(offset) as Promise<UserRecord[]>;
+}
+
+export interface UpdateUserInput {
+  name?: string | null;
+  routingProfile?: "eco" | "auto" | "premium";
+  role?: "user" | "admin" | "superadmin";
+  isActive?: boolean;
+  rateLimitRpm?: number | null;
+  rateLimitRpd?: number | null;
+  spendLimitDailyUsd?: number | null;
+  spendLimitMonthlyUsd?: number | null;
+}
+
+export async function updateUser(id: string, input: UpdateUserInput): Promise<UserRecord | undefined> {
+  const db = getDb();
+  const updates: Partial<typeof users.$inferInsert> = {
+    updatedAt: new Date().toISOString(),
+  };
+  if (input.name !== undefined) updates.name = input.name;
+  if (input.routingProfile !== undefined) updates.routingProfile = input.routingProfile;
+  if (input.role !== undefined) updates.role = input.role;
+  if (input.isActive !== undefined) updates.isActive = input.isActive ? 1 : 0;
+  if (input.rateLimitRpm !== undefined) updates.rateLimitRpm = input.rateLimitRpm;
+  if (input.rateLimitRpd !== undefined) updates.rateLimitRpd = input.rateLimitRpd;
+  if (input.spendLimitDailyUsd !== undefined) updates.spendLimitDailyUsd = input.spendLimitDailyUsd;
+  if (input.spendLimitMonthlyUsd !== undefined) updates.spendLimitMonthlyUsd = input.spendLimitMonthlyUsd;
+
+  await db.update(users).set(updates).where(eq(users.id, id));
+  return getUserById(id);
 }

@@ -14,6 +14,12 @@ export interface AuthResult {
   scopes: string[];
   routingProfile: string;
   role?: string;
+  rateLimitRpm?: number | null;
+  rateLimitRpd?: number | null;
+  spendLimitDailyUsd?: number | null;
+  spendLimitMonthlyUsd?: number | null;
+  keyRateLimitRpmOverride?: number | null;
+  keySpendLimitDailyOverrideUsd?: number | null;
   method: "apikey" | "wallet" | "admin";
   metadata?: Record<string, unknown>;
 }

@@ -68,8 +68,9 @@ async function soloAuth(c: Context, next: Next): Promise<Response> {
   // Solo mode: create a virtual user context using wallet auth
   const soloAuth: AuthResult = {
     userId: "solo",
-    scopes: ["chat", "models", "admin"],
+    scopes: ["chat", "models", "usage", "manage"],
     routingProfile: "auto",
+    role: "superadmin",
     method: "wallet",
   };
 
