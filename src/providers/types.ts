@@ -8,9 +8,11 @@ export type ModelSlot = {
   baseUrl: string;
   apiKey: string;
   model: string;
+  pricingModelId?: string;
   supportsTools: boolean;
   supportsVision: boolean;
   contextWindowTokens?: number;
+  providerInstanceId?: string;
 };
 
 export type ModelSlots = Partial<Record<ModelSlotName, ModelSlot>>;
