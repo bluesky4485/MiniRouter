@@ -14,6 +14,8 @@ import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 export interface UsageLogEntry {
   id: number;
   requestId: string;
+  requestedModel: string | null;
+  selectedSlot: string | null;
   model: string;
   tier: string | null;
   profile: string | null;
@@ -31,12 +33,16 @@ export interface UsageLogEntry {
   isStreaming: boolean;
   hasTools: boolean;
   hasVision: boolean;
+  hasAgentic: boolean;
   promptDigest: string | null;
   optimizationReason: string | null;
   compressionApplied: boolean;
   compressionOriginalChars: number;
   compressionCompressedChars: number;
   compressionBlocks: number;
+  providerInstanceId: string | null;
+  routingDebug: string | null;
+  effort: string | null;
   createdAt: string;
 }
 
@@ -67,25 +73,28 @@ export async function getUsageLogs(c: Context) {
     );
   }
 
-  const userId = requestedUserId ?? auth.userId;
+  const userId = requestedUserId ?? (isAdmin ? undefined : auth.userId);
 
-  const conditions = [eq(usageLogs.userId, userId)];
+  const conditions = [];
+  if (userId) conditions.push(eq(usageLogs.userId, userId));
   if (from) conditions.push(gte(usageLogs.createdAt, from));
   if (to) conditions.push(lte(usageLogs.createdAt, to));
   if (status) conditions.push(eq(usageLogs.status, status));
   if (model) conditions.push(eq(usageLogs.model, model));
 
-  const rows = await db
+  const query = db
     .select()
     .from(usageLogs)
-    .where(and(...conditions))
     .orderBy(desc(usageLogs.createdAt))
     .limit(limit)
     .offset(offset);
+  const rows = conditions.length > 0 ? await query.where(and(...conditions)) : await query;
 
   const logs: UsageLogEntry[] = rows.map((r) => ({
     id: Number(r.id),
     requestId: r.requestId,
+    requestedModel: r.requestedModel ?? null,
+    selectedSlot: r.selectedSlot ?? null,
     model: r.model,
     tier: r.tier ?? null,
     profile: r.profile ?? null,
@@ -103,12 +112,16 @@ export async function getUsageLogs(c: Context) {
     isStreaming: !!r.isStreaming,
     hasTools: !!r.hasTools,
     hasVision: !!r.hasVision,
+    hasAgentic: !!r.hasAgentic,
     promptDigest: r.promptDigest ?? null,
     optimizationReason: r.optimizationReason ?? null,
     compressionApplied: !!r.compressionApplied,
     compressionOriginalChars: Number(r.compressionOriginalChars ?? 0),
     compressionCompressedChars: Number(r.compressionCompressedChars ?? 0),
     compressionBlocks: Number(r.compressionBlocks ?? 0),
+    providerInstanceId: r.providerInstanceId ?? null,
+    routingDebug: r.routingDebug ?? null,
+    effort: r.effort ?? null,
     createdAt: r.createdAt,
   }));
 

@@ -13,6 +13,10 @@ import { optimizeWithHeadroom } from "../../context/headroom.js";
 import { parseAnthropicUsage, toMutableUpstreamResponse } from "./chat.js";
 import { extractPromptDigest, extractLastUserText } from "../../routing/features/prompt-digest.js";
 import { createSseUsageTap } from "../sse-usage-tap.js";
+import { estimateUsdCostForModel } from "../../router/cost.js";
+import { isSpendLimitExceeded } from "../../db/queries/spend.js";
+import { channelToModelSlot, listProviderInstances, recordProviderFailure, recordProviderSuccess } from "../../db/queries/provider-instances.js";
+import { selectProviderChannel } from "../../providers/channels.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -26,6 +30,8 @@ type OptimizationLog = {
     blocks: number;
   };
 };
+
+const channelCursors = new Map<string, number>();
 
 /**
  * Extract client-declared thinking effort from request body.
@@ -184,6 +190,42 @@ async function executeConfiguredAnthropicBody(
   };
 }
 
+async function applyManagedChannel(
+  slot: ModelSlot,
+  requirements: { toolCalling: boolean; vision: boolean },
+): Promise<ModelSlot> {
+  const channels = await listProviderInstances(slot.slot);
+  const cursor = channelCursors.get(slot.slot) ?? 0;
+  const selected = selectProviderChannel(channels, {
+    slot: slot.slot,
+    requirements,
+    cursor,
+  });
+  if (!selected) return slot;
+  channelCursors.set(slot.slot, selected.nextCursor);
+  return channelToModelSlot(selected.channel);
+}
+
+async function rejectIfSpendLimitExceeded(c: Context, auth: AuthResult): Promise<Response | undefined> {
+  const result = await isSpendLimitExceeded({
+    userId: auth.userId,
+    apiKeyId: auth.apiKeyId,
+    dailyLimitUsd: auth.spendLimitDailyUsd,
+    monthlyLimitUsd: auth.spendLimitMonthlyUsd,
+    keyDailyLimitUsd: auth.keySpendLimitDailyOverrideUsd,
+  });
+  if (!result.exceeded) return undefined;
+  return c.json(
+    {
+      error: {
+        message: `Spend limit exceeded (${result.scope}): ${result.currentUsd?.toFixed(4)} >= ${result.limitUsd?.toFixed(4)} USD`,
+        type: "spend_limit_exceeded",
+      },
+    },
+    402,
+  );
+}
+
 function usageOptimizationFields(optimization: OptimizationLog) {
   return {
     optimizationReason: optimization.reason,
@@ -198,6 +240,9 @@ export async function anthropicMessages(c: Context) {
   const auth = c.get("auth") as AuthResult;
   let body = await c.req.json();
   const requestId = randomUUID();
+  const modelParam = typeof body.model === "string" ? body.model : "minirouter/auto";
+  const spendLimitResponse = await rejectIfSpendLimitExceeded(c, auth);
+  if (spendLimitResponse) return spendLimitResponse;
   const normalized = normalizeAnthropicMessagesRequest(body);
   const promptDigest = extractPromptDigest(normalized.messages);
   let configured: SlotConfig | null;
@@ -209,6 +254,10 @@ export async function anthropicMessages(c: Context) {
   }
 
   if (!configured) return createMissingAnthropicSlotResponse();
+  configured.slot = await applyManagedChannel(configured.slot, {
+    toolCalling: configured.features.requirements.toolCalling,
+    vision: configured.features.requirements.vision,
+  });
 
   let upstream: Response;
   let optimization: OptimizationLog = {};
@@ -218,6 +267,9 @@ export async function anthropicMessages(c: Context) {
     optimization = result.optimization;
   } catch (error) {
     console.error("[MiniRouter] upstream request failed:", (error as Error).message);
+    if (configured.slot.providerInstanceId) {
+      await recordProviderFailure(configured.slot.providerInstanceId);
+    }
     return createAnthropicProviderErrorResponse(error);
   }
 
@@ -240,12 +292,20 @@ export async function anthropicMessages(c: Context) {
     });
     // ��������Ӧ �� ����������д usage log
     finalUsage
-      .then((u) => {
+      .then(async (u) => {
         try {
+          const cost = await estimateUsdCostForModel(configured.slot.pricingModelId ?? configured.slot.model, {
+            inputTokens: u.inputTokens ?? inputTokens,
+            outputTokens: u.outputTokens ?? 0,
+            cacheReadTokens: u.cacheReadTokens ?? 0,
+          });
           logUsage({
             userId: auth.userId,
             apiKeyId: auth.apiKeyId,
+            providerInstanceId: configured.slot.providerInstanceId,
             requestId,
+            requestedModel: modelParam,
+            selectedSlot: configured.slot.slot,
             model: configured.slot.model,
             tier: configured.tier,
             profile: configured.profile,
@@ -255,12 +315,13 @@ export async function anthropicMessages(c: Context) {
             inputTokens: u.inputTokens ?? inputTokens,
             outputTokens: u.outputTokens ?? 0,
             cacheReadTokens: u.cacheReadTokens ?? 0,
-            costUsd: 0,
+            costUsd: cost.costUsd,
             latencyMs: Date.now() - startedAt,
             status: "success",
             hasTools: configured.features.requirements.toolCalling,
             isStreaming,
             hasVision: configured.features.requirements.vision,
+            hasAgentic: configured.features.requirements.agentic,
             promptDigest: promptDigest ?? undefined,
             ...usageOptimizationFields(optimization),
           }).catch((err) => {
@@ -284,12 +345,20 @@ export async function anthropicMessages(c: Context) {
       cacheReadTokens = usage.cacheReadTokens;
     }
   }
+  const cost = await estimateUsdCostForModel(configured.slot.pricingModelId ?? configured.slot.model, {
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+  });
 
   try {
     await logUsage({
       userId: auth.userId,
       apiKeyId: auth.apiKeyId,
+      providerInstanceId: configured.slot.providerInstanceId,
       requestId,
+      requestedModel: modelParam,
+      selectedSlot: configured.slot.slot,
       model: configured.slot.model,
       tier: configured.tier,
       profile: configured.profile,
@@ -299,18 +368,26 @@ export async function anthropicMessages(c: Context) {
       inputTokens,
       outputTokens,
       cacheReadTokens,
-      costUsd: 0,
+      costUsd: cost.costUsd,
       latencyMs: Date.now() - startedAt,
       status: upstream.ok ? "success" : "error",
       errorType: upstream.ok ? undefined : `http_${upstream.status}`,
       hasTools: configured.features.requirements.toolCalling,
       isStreaming,
       hasVision: configured.features.requirements.vision,
+      hasAgentic: configured.features.requirements.agentic,
       promptDigest: promptDigest ?? undefined,
       ...usageOptimizationFields(optimization),
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);
+  }
+  if (configured.slot.providerInstanceId) {
+    if (upstream.ok) {
+      await recordProviderSuccess(configured.slot.providerInstanceId, Date.now() - startedAt);
+    } else {
+      await recordProviderFailure(configured.slot.providerInstanceId);
+    }
   }
 
   return toMutableUpstreamResponse(upstream);

@@ -20,6 +20,10 @@ import { executeOpenAICompatibleChat } from "../../providers/openai-compatible.j
 import { optimizeWithHeadroom } from "../../context/headroom.js";
 import { extractPromptDigest, extractLastUserText } from "../../routing/features/prompt-digest.js";
 import { createSseUsageTap } from "../sse-usage-tap.js";
+import { estimateUsdCostForModel } from "../../router/cost.js";
+import { isSpendLimitExceeded } from "../../db/queries/spend.js";
+import { channelToModelSlot, listProviderInstances, recordProviderFailure, recordProviderSuccess } from "../../db/queries/provider-instances.js";
+import { selectProviderChannel } from "../../providers/channels.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -31,6 +35,8 @@ type OptimizationLog = {
     blocks: number;
   };
 };
+
+const channelCursors = new Map<string, number>();
 
 /**
  * Extract client-declared thinking effort from request body.
@@ -150,6 +156,42 @@ async function executeConfiguredSlot(body: any, slot: ModelSlot): Promise<{ upst
       compression: optimized.compression,
     },
   };
+}
+
+async function applyManagedChannel(
+  slot: ModelSlot,
+  requirements: { toolCalling: boolean; vision: boolean },
+): Promise<ModelSlot> {
+  const channels = await listProviderInstances(slot.slot);
+  const cursor = channelCursors.get(slot.slot) ?? 0;
+  const selected = selectProviderChannel(channels, {
+    slot: slot.slot,
+    requirements,
+    cursor,
+  });
+  if (!selected) return slot;
+  channelCursors.set(slot.slot, selected.nextCursor);
+  return channelToModelSlot(selected.channel);
+}
+
+async function rejectIfSpendLimitExceeded(c: Context, auth: AuthResult): Promise<Response | undefined> {
+  const result = await isSpendLimitExceeded({
+    userId: auth.userId,
+    apiKeyId: auth.apiKeyId,
+    dailyLimitUsd: auth.spendLimitDailyUsd,
+    monthlyLimitUsd: auth.spendLimitMonthlyUsd,
+    keyDailyLimitUsd: auth.keySpendLimitDailyOverrideUsd,
+  });
+  if (!result.exceeded) return undefined;
+  return c.json(
+    {
+      error: {
+        message: `Spend limit exceeded (${result.scope}): ${result.currentUsd?.toFixed(4)} >= ${result.limitUsd?.toFixed(4)} USD`,
+        type: "spend_limit_exceeded",
+      },
+    },
+    402,
+  );
 }
 
 function usageOptimizationFields(optimization: OptimizationLog) {
@@ -298,6 +340,8 @@ export async function chatCompletions(c: Context) {
   trace("json_parsed");
   const requestId = randomUUID();
   const modelParam: string = body.model ?? "minirouter/auto";
+  const spendLimitResponse = await rejectIfSpendLimitExceeded(c, auth);
+  if (spendLimitResponse) return spendLimitResponse;
 
   if (!isRoutingModel(modelParam)) {
     return c.json(
@@ -328,6 +372,10 @@ export async function chatCompletions(c: Context) {
   trace("features_start");
   const features = extractRoutingFeatures(request);
   trace("features_done");
+  configured.slot = await applyManagedChannel(configured.slot, {
+    toolCalling: features.requirements.toolCalling,
+    vision: features.requirements.vision,
+  });
   let upstream: Response;
   let optimization: OptimizationLog = {};
   try {
@@ -338,6 +386,9 @@ export async function chatCompletions(c: Context) {
     optimization = result.optimization;
   } catch (error) {
     trace(`execute_slot_error:${(error as Error).message}`);
+    if (configured.slot.providerInstanceId) {
+      await recordProviderFailure(configured.slot.providerInstanceId);
+    }
     return createProviderErrorResponse(error);
   }
 
@@ -358,12 +409,20 @@ export async function chatCompletions(c: Context) {
       headers: new Headers(upstream.headers),
     });
     finalUsage
-      .then((u) => {
+      .then(async (u) => {
         try {
+          const cost = await estimateUsdCostForModel(configured.slot.pricingModelId ?? configured.slot.model, {
+            inputTokens: u.inputTokens ?? inputTokens,
+            outputTokens: u.outputTokens ?? 0,
+            cacheReadTokens: u.cacheReadTokens ?? 0,
+          });
           logUsage({
             userId: auth.userId,
             apiKeyId: auth.apiKeyId,
+            providerInstanceId: configured.slot.providerInstanceId,
             requestId,
+            requestedModel: modelParam,
+            selectedSlot: configured.slot.slot,
             model: configured.slot.model,
             tier: configured.tier,
             profile: configured.profile,
@@ -373,12 +432,13 @@ export async function chatCompletions(c: Context) {
             inputTokens: u.inputTokens ?? inputTokens,
             outputTokens: u.outputTokens ?? 0,
             cacheReadTokens: u.cacheReadTokens ?? 0,
-            costUsd: 0,
+            costUsd: cost.costUsd,
             latencyMs: Date.now() - startedAt,
             status: "success",
             hasTools: features.requirements.toolCalling,
             isStreaming,
             hasVision: features.requirements.vision,
+            hasAgentic: features.requirements.agentic,
             promptDigest: extractPromptDigest(request.messages) ?? undefined,
             ...usageOptimizationFields(optimization),
           }).catch((err) => {
@@ -402,12 +462,20 @@ export async function chatCompletions(c: Context) {
       cacheReadTokens = usage.cacheReadTokens;
     }
   }
+  const cost = await estimateUsdCostForModel(configured.slot.pricingModelId ?? configured.slot.model, {
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+  });
 
   try {
     await logUsage({
       userId: auth.userId,
       apiKeyId: auth.apiKeyId,
+      providerInstanceId: configured.slot.providerInstanceId,
       requestId,
+      requestedModel: modelParam,
+      selectedSlot: configured.slot.slot,
       model: configured.slot.model,
       tier: configured.tier,
       profile: configured.profile,
@@ -417,18 +485,26 @@ export async function chatCompletions(c: Context) {
       inputTokens,
       outputTokens,
       cacheReadTokens,
-      costUsd: 0,
+      costUsd: cost.costUsd,
       latencyMs: Date.now() - startedAt,
       status: upstream.ok ? "success" : "error",
       errorType: upstream.ok ? undefined : `http_${upstream.status}`,
       hasTools: features.requirements.toolCalling,
       isStreaming,
       hasVision: features.requirements.vision,
+      hasAgentic: features.requirements.agentic,
       promptDigest: extractPromptDigest(request.messages) ?? undefined,
       ...usageOptimizationFields(optimization),
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);
+  }
+  if (configured.slot.providerInstanceId) {
+    if (upstream.ok) {
+      await recordProviderSuccess(configured.slot.providerInstanceId, Date.now() - startedAt);
+    } else {
+      await recordProviderFailure(configured.slot.providerInstanceId);
+    }
   }
 
   return toMutableUpstreamResponse(upstream);
