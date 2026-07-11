@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- debug endpoint accepts raw OpenAI-compatible JSON. */
+
 import type { Context } from "hono";
 import { eq } from "drizzle-orm";
 

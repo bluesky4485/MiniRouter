@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- upstream SSE JSON has provider-specific schemas. */
+
 /**
  * SSE Usage Tap — 拦截流式响应,从 SSE 事件里抓 usage(token 计数)
  *
@@ -34,7 +36,6 @@ export function createSseUsageTap(
   protocol: "anthropic" | "openai",
 ): { passthrough: ReadableStream<Uint8Array>; finalUsage: Promise<TapUsage> } {
   const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
   let buffer = "";
   const usage: TapUsage = {};
   let resolveUsage: (u: TapUsage) => void;

@@ -38,7 +38,7 @@ RUN mkdir -p /data/.minirouter
 
 ENV HOME=/data
 ENV NODE_ENV=production
-ENV BLOCKRUN_PROXY_PORT=8402
+ENV MINIROUTER_PORT=8402
 
 EXPOSE 8402
 

@@ -10,7 +10,7 @@ set -euo pipefail
 MINIROUTER_USER="${MINIROUTER_USER:-minirouter}"
 MINIROUTER_HOME="/opt/${MINIROUTER_USER}"
 GIT_REPO="https://github.com/lpffernando/minirouter.git"
-GIT_BRANCH="codex/remove-vision"
+GIT_BRANCH="${MINIROUTER_BRANCH:-main}"
 NODE_MAJOR=22
 
 echo "=========================================="
@@ -62,7 +62,7 @@ fi
 # ─── Step 6: Install dependencies ─────────────────────────
 echo "[6/8] Installing npm dependencies..."
 cd "${MINIROUTER_HOME}/minirouter"
-npm install
+npm ci
 
 # ─── Step 7: Build ────────────────────────────────────────
 echo "[7/8] Building project (tsup)..."
@@ -94,7 +94,7 @@ echo "  2) 启动服务:       sudo systemctl enable --now minirouter"
 echo "  3) 查看状态:       sudo systemctl status minirouter"
 echo "  4) 查看日志:       sudo journalctl -u minirouter -f"
 echo ""
-echo "服务端口: \$(grep BLOCKRUN_PROXY_PORT ${MINIROUTER_HOME}/minirouter/.env | cut -d= -f2)"
+echo "服务端口: \$(grep MINIROUTER_PORT ${MINIROUTER_HOME}/minirouter/.env | cut -d= -f2)"
 echo "默认: 8402"
 echo ""
 echo "可选 — Nginx + HTTPS (腾讯云域名):"

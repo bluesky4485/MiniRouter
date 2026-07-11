@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped provider request payloads are passed through unchanged. */
+
 import type { Context } from "hono";
 import type { AuthResult } from "../../auth/types.js";
 import { route, getConfig } from "../../router/index.js";
@@ -132,7 +134,7 @@ export function selectConfiguredSlotForAnthropicMessages(
   };
 }
 
-export function createUnsatisfiedAnthropicSlotResponse(_error: unknown): Response {
+export function createUnsatisfiedAnthropicSlotResponse(): Response {
   return Response.json(
     {
       error: {
@@ -145,7 +147,7 @@ export function createUnsatisfiedAnthropicSlotResponse(_error: unknown): Respons
   );
 }
 
-export function createAnthropicProviderErrorResponse(_error: unknown): Response {
+export function createAnthropicProviderErrorResponse(): Response {
   return Response.json(
     {
       error: {
@@ -238,7 +240,7 @@ function usageOptimizationFields(optimization: OptimizationLog) {
 
 export async function anthropicMessages(c: Context) {
   const auth = c.get("auth") as AuthResult;
-  let body = await c.req.json();
+  const body = await c.req.json();
   const requestId = randomUUID();
   const modelParam = typeof body.model === "string" ? body.model : "minirouter/auto";
   const spendLimitResponse = await rejectIfSpendLimitExceeded(c, auth);
@@ -250,7 +252,7 @@ export async function anthropicMessages(c: Context) {
     configured = selectConfiguredSlotForAnthropicMessages(body);
   } catch (error) {
     console.error("[MiniRouter] slot selection failed:", (error as Error).message);
-    return createUnsatisfiedAnthropicSlotResponse(error);
+    return createUnsatisfiedAnthropicSlotResponse();
   }
 
   if (!configured) return createMissingAnthropicSlotResponse();
@@ -270,7 +272,7 @@ export async function anthropicMessages(c: Context) {
     if (configured.slot.providerInstanceId) {
       await recordProviderFailure(configured.slot.providerInstanceId);
     }
-    return createAnthropicProviderErrorResponse(error);
+    return createAnthropicProviderErrorResponse();
   }
 
   // For non-streaming responses, try to parse usage from the upstream JSON.
@@ -392,4 +394,3 @@ export async function anthropicMessages(c: Context) {
 
   return toMutableUpstreamResponse(upstream);
 }
-

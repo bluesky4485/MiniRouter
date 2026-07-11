@@ -15,6 +15,16 @@ import {
   updateProviderInstance,
 } from "../../db/queries/provider-instances.js";
 import type { ProviderChannel } from "../../providers/channels.js";
+import type { ModelSlotName } from "../../providers/types.js";
+
+type CreateKeyRequest = {
+  name?: string;
+  scopes?: string[];
+  expires_in_days?: number;
+  expiresInDays?: number;
+  rateLimitRpmOverride?: number;
+  spendLimitDailyOverrideUsd?: number;
+};
 
 function requireAdmin(c: Context): AuthResult {
   const auth = c.get("auth") as AuthResult;
@@ -40,7 +50,8 @@ function asNumberOrNull(value: unknown): number | null | undefined {
 }
 
 function publicChannel(channel: ProviderChannel) {
-  const { apiKey: _apiKey, ...safe } = channel;
+  const { apiKey, ...safe } = channel;
+  void apiKey;
   return safe;
 }
 
@@ -155,7 +166,7 @@ export async function adminCreateUserKey(c: Context) {
   return createKeyForUser(c, c.req.param("id")!, await c.req.json());
 }
 
-async function createKeyForUser(c: Context, userId: string, body: any) {
+async function createKeyForUser(c: Context, userId: string, body: CreateKeyRequest) {
   const user = await getUserById(userId);
   if (!user) return c.json({ error: { message: "User not found" } }, 404);
 
@@ -200,7 +211,7 @@ export async function adminUsage(c: Context) {
 
 export async function adminListChannels(c: Context) {
   requireAdmin(c);
-  const channels = await listProviderInstances(c.req.query("slot") as any);
+  const channels = await listProviderInstances(c.req.query("slot") as ModelSlotName | undefined);
   return c.json({ data: channels.map(publicChannel) });
 }
 

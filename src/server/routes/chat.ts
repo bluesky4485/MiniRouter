@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped provider request payloads are passed through unchanged. */
+
 /**
  * OpenAI-compatible chat completions route.
  *
@@ -217,7 +219,7 @@ export function createMissingSlotResponse(): Response {
   );
 }
 
-export function createUnsatisfiedSlotResponse(_error: unknown): Response {
+export function createUnsatisfiedSlotResponse(): Response {
   return Response.json(
     {
       error: {
@@ -230,7 +232,7 @@ export function createUnsatisfiedSlotResponse(_error: unknown): Response {
   );
 }
 
-export function createProviderErrorResponse(_error: unknown): Response {
+export function createProviderErrorResponse(): Response {
   return Response.json(
     {
       error: {
@@ -336,7 +338,7 @@ export async function chatCompletions(c: Context) {
     if (traceEnabled) console.error(`[MiniRouter trace] chat ${stage} +${Date.now() - traceStart}ms`);
   };
   trace("start");
-  let body = await c.req.json();
+  const body = await c.req.json();
   trace("json_parsed");
   const requestId = randomUUID();
   const modelParam: string = body.model ?? "minirouter/auto";
@@ -361,8 +363,8 @@ export async function chatCompletions(c: Context) {
     trace("select_slot_start");
     configured = selectConfiguredSlotForChat(body);
     trace(`select_slot_done:${configured?.slot.slot ?? "none"}`);
-  } catch (error) {
-    return createUnsatisfiedSlotResponse(error);
+  } catch {
+    return createUnsatisfiedSlotResponse();
   }
   if (!configured) return createMissingSlotResponse();
 
@@ -389,7 +391,7 @@ export async function chatCompletions(c: Context) {
     if (configured.slot.providerInstanceId) {
       await recordProviderFailure(configured.slot.providerInstanceId);
     }
-    return createProviderErrorResponse(error);
+    return createProviderErrorResponse();
   }
 
   // For non-streaming responses, try to parse usage from the upstream JSON.

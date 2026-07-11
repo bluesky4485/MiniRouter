@@ -78,11 +78,6 @@ function readMode(value: string | undefined): HeadroomMode {
    maxChars: number;
  };
  
- function readString(value: string | undefined, fallback: string): string {
-   if (!value) return fallback;
-   return value;
- }
- 
  export function loadTailCompressionConfig(env: EnvLike = process.env): TailCompressionConfig {
    return {
      enabled: readBool(env["MINIROUTER_TAIL_COMPRESSION_ENABLED"]),

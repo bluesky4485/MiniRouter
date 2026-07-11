@@ -2,9 +2,11 @@ import { builtinModules } from "node:module";
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/cli.ts", "src/server/serve.ts"],
+  // MiniRouter is deployed as a standalone HTTP service. Keep the build entry
+  // aligned with the executable that actually exists in this repository.
+  entry: ["src/server/serve.ts"],
   format: ["esm"],
-  dts: true,
+  dts: false,
   clean: true,
   sourcemap: true,
   target: "node22",

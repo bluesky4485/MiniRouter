@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Drizzle's dynamic partial update type cannot express this whitelist. */
+
 /**
  * Database-backed model score routes.
  *
