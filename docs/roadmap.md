@@ -55,7 +55,41 @@
 - 明确模型池差异度：参考结论「路由收益来自模型间真实差异」，先量化本池各 slot 的能力差异，定位高 headroom 的任务类型。
 - 定义本地 head 的输入特征（复用 14 维特征 + 请求向量）与输出空间（slot 链 / role / 多轮策略）。
 
-## 3. Headroom 上下文压缩上线
+## 3. Agentic 分支路由（Agentic tier routing branch）
+
+### 背景
+- 当前路由引擎（`src/router/strategy.ts`）已经支持 agentic 检测：`agenticScore`（0-1）在 `classifyByRules()` 中计算，`scoreAgenticTask()` 扫描 Agentic 关键词（文件操作、执行、多步骤、迭代工作）。
+- `RoutingConfig` 类型已定义 `agenticTiers?: Record<Tier, TierConfig> | null`，`strategy.ts` 已具备根据 `agenticScore >= threshold` 自动切换到 `agenticTiers` 的逻辑。
+- 但 `agenticTiers` 配置在 `src/router/config.ts` 中**被注释掉了**，导致实际未生效。
+- 诉求：当请求检测到 agentic 特征时，路由到**专为多步骤自主任务优化**的模型池，而非普通聊天模型池。
+
+### 设计要点
+1. **agenticTiers 配置复活**：取消 `config.ts` 中 `agenticTiers` 的注释，填入适合 agentic 场景的模型（工具调用好、自主执行强、上下文窗口大）。
+2. **Slot 映射**：`agenticTiers` 选出的模型需要映射到对应的 slot（`fast`/`balanced`/`strong`/`vision`），通过 `pickSlotForFeatures()` 或新增 `pickSlotForAgentic()` 实现。
+3. **Profile 独立**：`agentic` profile 应独立于 `auto`/`eco`/`premium`，但可以与它们叠加——如 `eco + agentic` → 便宜且工具调用好；`premium + agentic` → 最强自主模型。
+4. **回执体现**：`routingDebug` 中标记 `profile: "agentic"`，让用户可见「当前请求走了 agentic 分支」。
+5. **阈值可调**：`MINIROUTER_AGENTIC_SCORE_THRESHOLD` 环境变量已存在，默认 0.5。
+
+### 需进一步思考的复杂场景
+> Agentic 路由的难点在于准确识别「真正需要 agentic 模型」的请求，避免误判。以下场景需要仔细设计：
+> - 请求带 `tools` 数组但只是简单问答（如天气查询）→ 不应走 agentic 分支
+> - 请求无 tools 但隐含多轮链（如"先分析代码，再改文件，最后运行测试"）→ 应走 agentic 分支
+> - 工具调用 + 结构化输出混合 → 需区分工具用途（查询 vs 执行）
+> - 多轮会话中只有部分轮次需要 agentic → 需逐轮判定
+> - 同一 agentic 框架（如 Claude Code、OpenCode）的不同指令差异很大
+
+### 影响范围
+- `src/router/config.ts`：取消 `agenticTiers` 注释，配置合适的模型。
+- `src/providers/env.ts`：`pickSlotForFeatures()` 可能需要支持 agentic 模式的 slot 选择。
+- `src/router/strategy.ts`：逻辑已就绪，无需改。
+- `admin/dashboard.html`：用量日志中显示 `profile: "agentic"`。
+
+### 验收
+- 请求含 agentic 关键词（如"编辑文件然后执行"）→ `agenticScore >= 0.5` → 走 `agenticTiers` → 日志显示 `profile=agentic`。
+- 普通请求 → `agenticScore < 0.5` → 走普通 `tiers` → 日志显示 `profile=auto`。
+- `MINIROUTER_AGENTIC_MODE=false` 可强制关闭 agentic 分支（已实现）。
+
+## 4. Headroom 上下文压缩上线
 
 ### 背景
 `src/context/headroom.ts` 已实现完整的 `optimizeWithHeadroom()` 函数，支持 adaptive（尾块压缩）和 force（全量压缩）两种模式，已集成到 `chat.ts` 和 `anthropic-messages.ts`。但当前处于**默认关闭**状态，且缺少必要的运维配套。
@@ -79,7 +113,7 @@
 5. **暴露全部配置项**：`MINIROUTER_TAIL_COMPRESSION_*` 系列变量写入 `.env.example` 和 `docs/headroom.md`。
 6. **压缩 metrics 上报**：无论 proxy 还是本地压缩，结果都写入 `usageLogs.compressionApplied` 等字段，便于 dashboard 可视化。
 
-## 4. 管理后台（Admin Dashboard）完善
+## 5. 管理后台（Admin Dashboard）完善
 
 ### 现状
 `admin/dashboard.html` 是一个 686 行的纯手写单页 HTML，无前端框架，无构建工具，所有 API 调用硬编码路径。功能有限：
@@ -97,7 +131,7 @@
 6. 多用户切换：支持查看不同用户的用量和配置。
 7. 构建时打包到 `dist/`，开发时支持 HMR。
 
-## 5. Teams / 多租户管理（Phase 3）
+## 6. Teams / 多租户管理（Phase 3）
 
 ### 现状
 `src/db/schema.ts` 已定义 `teams` 和 `teamMembers` 表，migration 已建表，但：
@@ -113,7 +147,7 @@
 4. 用量聚合：支持按团队维度汇总 spend + token 用量。
 5. 管理后台增加团队管理页面（依赖第 4 项后台完善）。
 
-## 6. 数据库路由配置（DB-backed RoutingConfigs）
+## 7. 数据库路由配置（DB-backed RoutingConfigs）
 
 ### 现状
 `routingConfigs` 表已存在（有 `userId`、`teamId`、`priority`、`configJson` 字段），但：
@@ -128,7 +162,7 @@
 4. API 路由：`GET/PUT /api/admin/users/:id/routing-config`。
 5. 管理后台支持路由配置编辑（依赖第 4 项）。
 
-## 7. SSE 用量采集健壮性
+## 8. SSE 用量采集健壮性
 
 ### 现状
 `src/server/sse-usage-tap.ts` 的 `createSseUsageTap` 已实现并集成到 `chat.ts` 和 `anthropic-messages.ts`，但：
@@ -142,7 +176,7 @@
 3. 增加结构化日志记录 SSE 解析异常，方便排查用量统计不准的问题。
 4. 考虑 `usageLogs` 的批量写入（当前逐条 insert，高并发下可能成为瓶颈）。
 
-## 8. 模型评分数据维护机制
+## 9. 模型评分数据维护机制
 
 ### 现状
 - `models/seed-data.json` 中存储了评分数据，`models/seed-models.ts` 脚本负责导入到数据库。
@@ -156,7 +190,7 @@
 3. 实现评分版本管理：每次 seed 或更新保存快照，支持回滚。
 4. 管理后台增加模型评分编辑界面（依赖第 4 项）。
 
-## 9. 路由配置代码拆分（`src/router/config.ts` 瘦身）
+## 10. 路由配置代码拆分（`src/router/config.ts` 瘦身）
 
 ### 现状
 `src/router/config.ts` 长达 1401 行，全部是 `DEFAULT_ROUTING_CONFIG` 常量的定义（14 维权重、多语言关键词、分类器配置、兜底模型列表等）。`getConfig()` 函数只有 ~50 行。
@@ -166,18 +200,6 @@
 2. 将多语言关键词列表提取到 `src/router/config-keywords.ts`。
 3. 将兜底模型列表提取到 `src/router/config-fallback-models.ts`。
 4. 保持 `config.ts` 只负责 `getConfig()` 和 `MINIROUTER_*` 环境变量覆盖逻辑。
-
-## 10. `prompt-digest` 功能未在 OpenAI 路由中使用
-
-### 现状
-- `extractPromptDigest()` 在 `anthropic-messages.ts` 中正常使用，写入 `usageLogs.promptDigest`。
-- 但在 `chat.ts` 中，`promptDigest` 只在 `logUsage()` 调用时传入，路由层本身没有使用它做任何决策。
-- `extractLastUserText()` 在两个路由中都没有被调用。
-
-### 待办
-1. 评估 `promptDigest` 是否应该作为路由特征输入（如用于缓存兜底模型选择）。
-2. 统一 OpenAI 和 Anthropic 路由的 promptDigest 采集逻辑。
-3. 考虑将 `extractLastUserText` 用于路由调试回执中的用户请求摘要。
 
 ---
 
