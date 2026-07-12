@@ -1,8 +1,8 @@
-> **English** · [中文](README_CN.md)
-
 # MiniRouter
 
 ![MiniRouter intelligent model routing gateway](assets/minirouter-hero.png)
+
+> **English** · [中文](README_CN.md)
 
 MiniRouter is a self-hosted LLM dispatch gateway. Rather than blindly forwarding
 every request to the same model, it first evaluates the task's difficulty, then

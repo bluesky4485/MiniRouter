@@ -1,8 +1,8 @@
-> **中文** · [English](README.md)
-
 # MiniRouter
 
 ![MiniRouter 智能模型路由网关](assets/minirouter-hero.png)
+
+> **中文** · [English](README.md)
 
 MiniRouter 是一个自托管的 LLM 智能调度网关。它不是简单转发 API，而是先判断
 这次任务到底难不难，再决定该用快模型、均衡模型、强模型还是视觉模型——
