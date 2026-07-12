@@ -19,3 +19,4 @@ logs/
 .claude/settings.local.json
 .agents/
 .claude/
+.pi/
