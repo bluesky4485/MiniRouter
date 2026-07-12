@@ -1,3 +1,5 @@
+> **中文** · [English](README.md)
+
 # MiniRouter
 
 ![MiniRouter 智能模型路由网关](assets/minirouter-hero.png)

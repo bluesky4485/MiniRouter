@@ -1,3 +1,5 @@
+> **English** · [中文](README_CN.md)
+
 # MiniRouter
 
 ![MiniRouter intelligent model routing gateway](assets/minirouter-hero.png)
