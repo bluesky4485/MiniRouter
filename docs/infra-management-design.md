@@ -152,7 +152,7 @@ Sections:
 - Channels table: slot, provider, model, weight, healthy status, failures, average latency, last used.
 - Channel form: create or update upstream endpoint configuration.
 
-The UI can follow the existing `models/dashboard.html` style, but should fix encoding and use concise Chinese labels.
+The UI can follow the existing `admin/dashboard.html` style, but should fix encoding and use concise Chinese labels.
 
 ## Rollout Plan
 

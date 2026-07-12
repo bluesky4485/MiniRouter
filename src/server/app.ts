@@ -11,11 +11,8 @@
  */
 
 import { Hono } from "hono";
-import type { Context } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { debugLogMiddleware } from "./middleware/debug.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/ratelimit.js";
@@ -49,11 +46,6 @@ import {
 import { getUsageLogs, getUserUsageSummary } from "./routes/usage-logs.js";
 import { serveAdminDashboard } from "./routes/admin-dashboard.js";
 
-function serveModelsDashboard(c: Context) {
-  const html = readFileSync(resolve(process.cwd(), "models/dashboard.html"), "utf8");
-  return c.html(html);
-}
-
 export function createApp(): Hono {
   const app = new Hono();
 
@@ -77,8 +69,6 @@ export function createApp(): Hono {
   // model APIs available for the model dashboard.
   app.get("/api/models", listModelScores);
   app.get("/api/models/:id", getModelScore);
-  app.get("/models/dashboard", serveModelsDashboard);
-  app.get("/models/dashboard.html", serveModelsDashboard);
   app.get("/admin/dashboard", serveAdminDashboard);
   app.post("/debug/route", debugRoute);
 

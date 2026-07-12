@@ -39,7 +39,7 @@ tools/                   # Model score import utilities (not in Docker image)
 ├── model-benchmark-aliases.mjs / superclue-model-aliases.mjs
 └── README.md
 
-archive/                 # Dead code kept for reference (not actively maintained)
+archive/                 # Dead code (registry, systemd scripts, one-time tools)
 ├── registry.ts          # Old hardcoded model registry (replaced by SQLite)
 ├── extract-models.mjs   # One-time extraction tool
 ├── update-log.md        # One-time model update log (2026-07-03)
