@@ -47,6 +47,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "eslint": "^10.2.0",
     "prettier": "^3.8.1",
+    "ssh2": "^1.17.0",
     "tsup": "^8.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",

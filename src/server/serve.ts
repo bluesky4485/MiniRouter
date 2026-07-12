@@ -1,4 +1,4 @@
-import { loadDotEnv, loadDotEnvDefaults } from "../config/dotenv.js";
+import { loadDotEnv } from "../config/dotenv.js";
 import { runMigrations } from "../db/migrations.js";
 import { getDb } from "../db/connection.js";
 import { users } from "../db/schema.js";
@@ -7,7 +7,6 @@ import { createApiKey } from "../auth/apikey.js";
 import { createUser, getUserByEmail } from "../db/queries/users.js";
 
 loadDotEnv();
-loadDotEnvDefaults();
 const [{ PROXY_PORT }, { createApp }] = await Promise.all([
   import("../config.js"),
   import("./app.js"),

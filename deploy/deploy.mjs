@@ -11,7 +11,7 @@
 import { execSync } from 'node:child_process';
 import { createReadStream } from 'node:fs';
 import { readFileSync } from 'node:fs';
-import { Client, utils } from 'ssh2';
+import { Client } from 'ssh2';
 
 const REPO = process.cwd();
 const REMOTE_DIR = process.argv[2] || '/opt/minirouter-src';

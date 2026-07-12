@@ -9,7 +9,6 @@ deploy
 .gitignore
 .dockerignore
 .env*
-!.env.tuning
 *.bat
 vitest.config.*
 eslint.config.*

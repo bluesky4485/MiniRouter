@@ -55,7 +55,130 @@
 - 明确模型池差异度：参考结论「路由收益来自模型间真实差异」，先量化本池各 slot 的能力差异，定位高 headroom 的任务类型。
 - 定义本地 head 的输入特征（复用 14 维特征 + 请求向量）与输出空间（slot 链 / role / 多轮策略）。
 
+## 3. Headroom 上下文压缩上线
+
+### 背景
+`src/context/headroom.ts` 已实现完整的 `optimizeWithHeadroom()` 函数，支持 adaptive（尾块压缩）和 force（全量压缩）两种模式，已集成到 `chat.ts` 和 `anthropic-messages.ts`。但当前处于**默认关闭**状态，且缺少必要的运维配套。
+
+### 现状（半成品清单）
+
+| 问题 | 状态 |
+|------|------|
+| `MINIROUTER_HEADROOM_ENABLED` 默认 false | 用户需手动开启 |
+| Headroom proxy 需要独立 Python 环境启动 | 无 docker-compose 集成，需手动 `start-headroom.bat` |
+| 文档中提到的本地 fallback `compressRequestTail()` 从未实现 | 代码中不存在此函数，proxy 不可用时静默跳过 |
+| `MINIROUTER_TAIL_COMPRESSION_ENABLED` 环境变量未在 `.env.example` 中暴露 | 处于半隐形状态 |
+| 无启动时 Headroom proxy 可用性探活 | 请求来时才发现连接失败 |
+| local tail compression 的 metrics 未记录到 `usageLogs` | 压缩是否生效只能看日志 |
+
+### 设计要点
+1. **Headroom proxy 容器化**：在 `docker-compose.yml` 中增加可选 headroom 服务，或提供 `docker-compose.headroom.yml` 分离配置，不强制部署。
+2. **启动探活**：MiniRouter 启动时主动探测 `MINIROUTER_HEADROOM_URL` 是否可达，unreachable 时降级为本地压缩并记录健康状态。
+3. **本地 tail 压缩替代**：实现 `compressRequestTail()` 函数，在 Headroom proxy 不可用时做 in-process 的 head+tail+important-lines 提取（文档中已有承诺但代码缺失）。
+4. **默认开启 adaptive**：将 `MINIROUTER_HEADROOM_ENABLED` 默认值改为 `true`，让用户开箱即用。
+5. **暴露全部配置项**：`MINIROUTER_TAIL_COMPRESSION_*` 系列变量写入 `.env.example` 和 `docs/headroom.md`。
+6. **压缩 metrics 上报**：无论 proxy 还是本地压缩，结果都写入 `usageLogs.compressionApplied` 等字段，便于 dashboard 可视化。
+
+## 4. 管理后台（Admin Dashboard）完善
+
+### 现状
+`admin/dashboard.html` 是一个 686 行的纯手写单页 HTML，无前端框架，无构建工具，所有 API 调用硬编码路径。功能有限：
+- 用户列表 + 创建/禁用
+- 渠道列表 + 创建/删除
+- 用量日志查询
+- 无身份认证保护（仅靠 Hono 路由层鉴权）
+
+### 待办
+1. 迁移到轻量前端框架（如 React + Vite 或 Svelte），便于维护和扩展。
+2. 增加仪表盘首页：日/周/月用量趋势图、成本分布、路由命中热力图。
+3. 增加 Headroom 压缩效果可视化：压缩率、节省 token 数、各模型压缩效果对比。
+4. 增加路由调试可视化：请求特征 → 路由决策 → 最终 slot 的链路追踪。
+5. 增加模型评分卡编辑界面（当前只能通过 API 或 seed 脚本更新）。
+6. 多用户切换：支持查看不同用户的用量和配置。
+7. 构建时打包到 `dist/`，开发时支持 HMR。
+
+## 5. Teams / 多租户管理（Phase 3）
+
+### 现状
+`src/db/schema.ts` 已定义 `teams` 和 `teamMembers` 表，migration 已建表，但：
+- 没有任何 CRUD 查询函数（`src/db/queries/` 下没有 teams 相关文件）
+- 没有任何 API 路由暴露 teams 管理
+- `routingConfigs.teamId` 字段虽然存在，但从未被任何代码读取或写入
+- 注释标注为 Phase 3，属于搁置状态
+
+### 待办
+1. 实现 `src/db/queries/teams.ts`：createTeam、getTeam、listTeams、addMember、removeMember 等。
+2. 实现 `src/server/routes/teams.ts`：REST API 路由。
+3. 实现配置继承链：`user → team → global default`，`routingConfigs` 按 `priority` 字段合并。
+4. 用量聚合：支持按团队维度汇总 spend + token 用量。
+5. 管理后台增加团队管理页面（依赖第 4 项后台完善）。
+
+## 6. 数据库路由配置（DB-backed RoutingConfigs）
+
+### 现状
+`routingConfigs` 表已存在（有 `userId`、`teamId`、`priority`、`configJson` 字段），但：
+- `src/router/config.ts` 的 `getConfig()` 只读环境变量，完全不碰数据库
+- 没有任何代码向 `routingConfigs` 表写入数据
+- 路由层完全依赖 `DEFAULT_ROUTING_CONFIG` + 少数 `MINIROUTER_*` 环境变量覆盖
+
+### 待办
+1. 实现 `getConfigForUser(userId)`：先查 user 级配置，再查 team 级配置，最后 fallback 到环境变量/DEFAULT。
+2. 实现 `updateUserRoutingConfig(userId, partialConfig)`：允许管理员通过 API 为用户定制路由参数。
+3. 实现配置合并逻辑：user 配置只覆盖部分字段，其余从 DEFAULT 继承（与现有环境变量覆盖兼容）。
+4. API 路由：`GET/PUT /api/admin/users/:id/routing-config`。
+5. 管理后台支持路由配置编辑（依赖第 4 项）。
+
+## 7. SSE 用量采集健壮性
+
+### 现状
+`src/server/sse-usage-tap.ts` 的 `createSseUsageTap` 已实现并集成到 `chat.ts` 和 `anthropic-messages.ts`，但：
+- Promise 错误处理存在空 catch：`// 流被客户端中断,不写 log`，丢失了异常可见性
+- 没有超时机制：如果上游流一直不结束，`finalUsage` 永远不 resolve
+- 没有重试机制：`logUsage` 写入失败时静默 catch
+
+### 待办
+1. 为 `finalUsage` 增加超时兜底（如 30s 后强制 resolve 当前累计值）。
+2. 增加 `logUsage` 写库失败的重试（至少 1 次）。
+3. 增加结构化日志记录 SSE 解析异常，方便排查用量统计不准的问题。
+4. 考虑 `usageLogs` 的批量写入（当前逐条 insert，高并发下可能成为瓶颈）。
+
+## 8. 模型评分数据维护机制
+
+### 现状
+- `models/seed-data.json` 中存储了评分数据，`models/seed-models.ts` 脚本负责导入到数据库。
+- `models/registry.ts` 存在但未在代码中被引用（可能是旧的尝试）。
+- 没有 API 让用户持续更新模型评分（只能通过 seed 脚本全量替换）。
+- 没有机制自动拉取模型价格更新（如 OpenRouter 价格变动）。
+
+### 待办
+1. 实现 `models/sync.ts`：定时从上游（如 OpenRouter API）拉取模型列表和价格，增量更新到 `modelScores` 表。
+2. 实现 `PATCH /api/admin/models/:id` 允许管理员手动调整评分。
+3. 实现评分版本管理：每次 seed 或更新保存快照，支持回滚。
+4. 管理后台增加模型评分编辑界面（依赖第 4 项）。
+
+## 9. 路由配置代码拆分（`src/router/config.ts` 瘦身）
+
+### 现状
+`src/router/config.ts` 长达 1401 行，全部是 `DEFAULT_ROUTING_CONFIG` 常量的定义（14 维权重、多语言关键词、分类器配置、兜底模型列表等）。`getConfig()` 函数只有 ~50 行。
+
+### 待办
+1. 将 `DEFAULT_ROUTING_CONFIG` 拆分为单独文件（如 `src/router/config-default.ts`）。
+2. 将多语言关键词列表提取到 `src/router/config-keywords.ts`。
+3. 将兜底模型列表提取到 `src/router/config-fallback-models.ts`。
+4. 保持 `config.ts` 只负责 `getConfig()` 和 `MINIROUTER_*` 环境变量覆盖逻辑。
+
+## 10. `prompt-digest` 功能未在 OpenAI 路由中使用
+
+### 现状
+- `extractPromptDigest()` 在 `anthropic-messages.ts` 中正常使用，写入 `usageLogs.promptDigest`。
+- 但在 `chat.ts` 中，`promptDigest` 只在 `logUsage()` 调用时传入，路由层本身没有使用它做任何决策。
+- `extractLastUserText()` 在两个路由中都没有被调用。
+
+### 待办
+1. 评估 `promptDigest` 是否应该作为路由特征输入（如用于缓存兜底模型选择）。
+2. 统一 OpenAI 和 Anthropic 路由的 promptDigest 采集逻辑。
+3. 考虑将 `extractLastUserText` 用于路由调试回执中的用户请求摘要。
+
+---
 
 > 注：本仓库当前为本地开发版（含服务器连接信息在 `.env`，不入库）。开源前需先确认敏感信息剥离（见 `docs/db-queries.md` 占位约定）。
-
-## 3. （待补充）

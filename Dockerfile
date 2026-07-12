@@ -40,10 +40,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY admin/ ./admin/
 COPY models/ ./models/
 
-# Tuning defaults baked into the image (no secrets).
-# Runtime -e vars override these; a volume-mounted .env overrides everything.
-COPY .env.tuning ./app/.env.tuning
-
+# Non-secret configuration is supplied at runtime via docker compose
+# `environment:` (and secrets via the gitignored `env_file: .env`).
 RUN mkdir -p /data/.minirouter
 
 ENV HOME=/data
