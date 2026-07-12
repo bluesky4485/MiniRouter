@@ -2,9 +2,13 @@
 set -euo pipefail
 
 # ============================================================
-# MiniRouter — Tencent Cloud Server 一键初始化脚本
-# 适用: Ubuntu 22.04 / 24.04 (其他系统请对照调整)
-# 用法: chmod +x setup-server.sh && sudo ./setup-server.sh
+# MiniRouter — server setup script
+# Tested on Ubuntu 22.04 / 24.04.
+# Usage: chmod +x setup-server.sh && sudo ./setup-server.sh
+#
+# Environment variables you can override before running:
+#   MINIROUTER_USER   – system user name   (default: minirouter)
+#   MINIROUTER_BRANCH – git branch to clone (default: main)
 # ============================================================
 
 MINIROUTER_USER="${MINIROUTER_USER:-minirouter}"
@@ -14,7 +18,7 @@ GIT_BRANCH="${MINIROUTER_BRANCH:-main}"
 NODE_MAJOR=22
 
 echo "=========================================="
-echo " MiniRouter Server Setup (腾讯云)"
+echo " MiniRouter Server Setup"
 echo "=========================================="
 
 # ─── Step 1: System dependencies ──────────────────────────
@@ -97,8 +101,11 @@ echo ""
 echo "服务端口: \$(grep MINIROUTER_PORT ${MINIROUTER_HOME}/minirouter/.env | cut -d= -f2)"
 echo "默认: 8402"
 echo ""
-echo "可选 — Nginx + HTTPS (腾讯云域名):"
+echo "Optional — Nginx + HTTPS:"
 echo "  sudo apt-get install -y nginx certbot python3-certbot-nginx"
+echo "  sudo cp deploy/nginx-minirouter.conf /etc/nginx/sites-available/minirouter"
+echo "  # edit server_name in the config, then:"
+echo "  sudo ln -s /etc/nginx/sites-available/minirouter /etc/nginx/sites-enabled/"
 echo "  sudo certbot --nginx -d your-domain.com"
-echo "  然后把 Nginx 反代到 localhost:8402"
+echo "  sudo systemctl reload nginx"
 echo ""

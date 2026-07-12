@@ -1,5 +1,0 @@
-# Environment configuration moved
-
-The maintained, copy-ready template is [`.env.example`](../.env.example).
-Copy it to the repository root as `.env`, then replace all placeholders before
-starting MiniRouter.

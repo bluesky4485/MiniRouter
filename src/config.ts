@@ -8,9 +8,10 @@
 const DEFAULT_PORT = 8402;
 
 /**
- * Proxy port configuration - resolved once at module load.
- * MINIROUTER_PORT is preferred. BLOCKRUN_PROXY_PORT remains a compatibility
- * fallback for existing deployments.
+ * Proxy port configuration — resolved once at module load.
+ * MINIROUTER_PORT is preferred.
+ * @deprecated BLOCKRUN_PROXY_PORT is a legacy fallback and will be
+ *   removed in a future major version.
  */
 export const PROXY_PORT = (() => {
   const envPort = process.env.MINIROUTER_PORT ?? process.env.BLOCKRUN_PROXY_PORT;

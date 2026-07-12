@@ -17,3 +17,5 @@ tmp/
 logs/
 .external/
 .claude/settings.local.json
+.agents/
+.claude/

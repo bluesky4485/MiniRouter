@@ -1,18 +1,24 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────
 FROM node:22-bookworm AS builder
 
+# Build args — set USE_CHINA_MIRROR=true for mainland China builds
+ARG USE_CHINA_MIRROR=false
+ARG NPM_REGISTRY=https://registry.npmjs.org
+
 WORKDIR /app
 
-RUN sed -i \
-      -e "s|http://deb.debian.org/debian|http://mirrors.cloud.tencent.com/debian|g" \
-      -e "s|http://deb.debian.org/debian-security|http://mirrors.cloud.tencent.com/debian-security|g" \
-      /etc/apt/sources.list.d/debian.sources && \
+RUN if [ "$USE_CHINA_MIRROR" = "true" ]; then \
+      sed -i \
+        -e "s|http://deb.debian.org/debian|http://mirrors.cloud.tencent.com/debian|g" \
+        -e "s|http://deb.debian.org/debian-security|http://mirrors.cloud.tencent.com/debian-security|g" \
+        /etc/apt/sources.list.d/debian.sources; \
+    fi && \
     apt-get update && \
     apt-get install -y --no-install-recommends build-essential python3 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-RUN npm config set registry https://registry.npmmirror.com && \
+RUN npm config set registry "${NPM_REGISTRY}" && \
     npm ci --build-from-source=better-sqlite3
 
 COPY tsconfig.json ./
