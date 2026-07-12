@@ -17,8 +17,7 @@ import { extractPromptDigest, extractLastUserText } from "../../routing/features
 import { createSseUsageTap } from "../sse-usage-tap.js";
 import { estimateUsdCostForModel } from "../../router/cost.js";
 import { isSpendLimitExceeded } from "../../db/queries/spend.js";
-import { channelToModelSlot, listProviderInstances, recordProviderFailure, recordProviderSuccess } from "../../db/queries/provider-instances.js";
-import { selectProviderChannel } from "../../providers/channels.js";
+import { executeWithChannelFallback } from "./channel-execution.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -33,7 +32,6 @@ type OptimizationLog = {
   };
 };
 
-const channelCursors = new Map<string, number>();
 const routingModelPricing = new Map<string, ModelPricing>();
 
 /**
@@ -193,22 +191,6 @@ async function executeConfiguredAnthropicBody(
   };
 }
 
-async function applyManagedChannel(
-  slot: ModelSlot,
-  requirements: { toolCalling: boolean; vision: boolean },
-): Promise<ModelSlot> {
-  const channels = await listProviderInstances(slot.slot);
-  const cursor = channelCursors.get(slot.slot) ?? 0;
-  const selected = selectProviderChannel(channels, {
-    slot: slot.slot,
-    requirements,
-    cursor,
-  });
-  if (!selected) return slot;
-  channelCursors.set(slot.slot, selected.nextCursor);
-  return channelToModelSlot(selected.channel);
-}
-
 async function rejectIfSpendLimitExceeded(c: Context, auth: AuthResult): Promise<Response | undefined> {
   const result = await isSpendLimitExceeded({
     userId: auth.userId,
@@ -257,22 +239,22 @@ export async function anthropicMessages(c: Context) {
   }
 
   if (!configured) return createMissingAnthropicSlotResponse();
-  configured.slot = await applyManagedChannel(configured.slot, {
-    toolCalling: configured.features.requirements.toolCalling,
-    vision: configured.features.requirements.vision,
-  });
 
   let upstream: Response;
   let optimization: OptimizationLog = {};
   try {
-    const result = await executeConfiguredAnthropicBody(body, configured.slot);
+    const result = await executeWithChannelFallback({
+      slot: configured.slot.slot,
+      requirements: {
+        toolCalling: configured.features.requirements.toolCalling,
+        vision: configured.features.requirements.vision,
+      },
+      executor: (slot) => executeConfiguredAnthropicBody(body, slot),
+    });
     upstream = result.upstream;
     optimization = result.optimization;
-  } catch (error) {
-    console.error("[MiniRouter] upstream request failed:", (error as Error).message);
-    if (configured.slot.providerInstanceId) {
-      await recordProviderFailure(configured.slot.providerInstanceId);
-    }
+    configured.slot = result.slot;
+  } catch {
     return createAnthropicProviderErrorResponse();
   }
 
@@ -384,13 +366,6 @@ export async function anthropicMessages(c: Context) {
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);
-  }
-  if (configured.slot.providerInstanceId) {
-    if (upstream.ok) {
-      await recordProviderSuccess(configured.slot.providerInstanceId, Date.now() - startedAt);
-    } else {
-      await recordProviderFailure(configured.slot.providerInstanceId);
-    }
   }
 
   return toMutableUpstreamResponse(upstream);

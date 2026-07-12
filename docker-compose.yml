@@ -1,0 +1,46 @@
+# MiniRouter — Docker Compose production deployment
+#
+# Usage:
+#   1. Create .env from .env.example and fill in your API keys
+#   2. Edit .env.tuning to adjust routing parameters (optional)
+#   3. docker compose up -d
+#
+# Secrets (API keys) live in .env on the host and are passed via
+# the `env_file` directive — never baked into the image.
+
+services:
+  minirouter:
+    build:
+      context: .
+      args:
+        # Set to true for mainland China (mirrors + npmmirror)
+        USE_CHINA_MIRROR: "false"
+        NPM_REGISTRY: "https://registry.npmjs.org"
+    container_name: minirouter
+    # Internal port 8402; map to host 8402
+    ports:
+      - "${MINIROUTER_HOST_PORT:-8402}:8402"
+    env_file:
+      - .env
+    environment:
+      - HOME=/data
+      - NODE_ENV=production
+    volumes:
+      # Persist SQLite database outside the container
+      - minirouter-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8402/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  minirouter-data:
+    # Use a bind mount for direct host access to the DB file
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /opt/minirouter-data

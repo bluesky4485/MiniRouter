@@ -65,34 +65,83 @@ curl http://localhost:8402/health/ready
 `.env.example` 默认启用了 `MINIROUTER_SOLO=true`，本地请求无需 API key。
 **切勿将 solo 模式暴露到不信任的网络。**
 
-## 部署到服务器（Ubuntu 22.04 / 24.04）
+## 部署到服务器（Docker）
 
-使用一键部署脚本。它会安装 Node.js、创建系统用户、克隆仓库、构建项目并注册 systemd 服务。
+MiniRouter 使用两阶段 Docker 镜像。构建阶段从源码编译 better-sqlite3，
+生产阶段是精简的 Node.js 22 容器。
+
+### 方式 A — docker compose（推荐）
 
 ```bash
 git clone https://github.com/lpffernando/MiniRouter.git
 cd MiniRouter
-chmod +x deploy/setup-server.sh
-sudo ./deploy/setup-server.sh
+
+# 1. 创建配置文件
+cp .env.example .env
+# 编辑 .env：替换每个槽位的 BASE_URL、API_KEY、MODEL
+
+# 2.（可选）调整路由参数
+#    编辑 .env.tuning — 默认值已经合理。
+
+# 3. 构建并启动
+docker compose up -d
+
+# 4. 验证
+curl http://localhost:8402/health/ready
+# → { "status": "ready" }
+
+# 5. 查看日志
+docker compose logs -f
 ```
 
-脚本执行完成后：
+数据持久化在 `minirouter-data` Docker volume 中。如需通过 bind mount
+让宿主机直接访问 SQLite 文件，编辑 `docker-compose.yml` 取消注释
+`driver_opts` 块。
+
+**国内构建：** 在 `docker-compose.yml` 中设置 build arg：
+
+```yaml
+args:
+  USE_CHINA_MIRROR: "true"
+  NPM_REGISTRY: "https://registry.npmmirror.com"
+```
+
+### 方式 B — 手动 docker run
 
 ```bash
-# 1. 填入 API key
-sudo nano /opt/minirouter/minirouter/.env
+# 构建（国内加 --build-arg USE_CHINA_MIRROR=true）
+docker build -t minirouter:latest .
 
-# 2. 启动
-sudo systemctl enable --now minirouter
-sudo systemctl status minirouter
-sudo journalctl -u minirouter -f
+# 运行
+docker run -d \
+  --name minirouter \
+  --restart unless-stopped \
+  -p 8402:8402 \
+  -v /opt/minirouter-data:/data \
+  --env-file .env \
+  minirouter:latest
 ```
 
-服务以 `minirouter` 用户运行在 8402 端口。可通过环境变量覆盖默认值：
+### 方式 C — deploy.sh（本地构建，推送到服务器）
 
 ```bash
-MINIROUTER_USER=router-user MINIROUTER_BRANCH=dev sudo -E ./deploy/setup-server.sh
+# 从本机构建镜像，scp 到服务器，重建容器
+./deploy/deploy.sh your-server-ip 22
+
+# 或直接在服务器上执行
+./deploy/deploy.sh
 ```
+
+### 配置文件
+
+| 文件 | 用途 | 入库？ |
+| --- | --- | :---: |
+| `.env` | 密钥：API key、base URL、solo 模式 | 否（gitignored） |
+| `.env.example` | 所有可用变量的模板 | 是 |
+| `.env.tuning` | 路由参数默认值（无密钥） | 是 |
+
+`.env.tuning` 会被打包进 Docker 镜像 `/app/.env.tuning`，提供合理的路由默认值。
+运行时 `-e` 变量和 `.env` 的优先级均高于 `.env.tuning`。
 
 ### 生产环境首次启动
 
@@ -123,10 +172,14 @@ sudo systemctl reload nginx
 ### 更新部署
 
 ```bash
+# 从本机
 ./deploy/deploy.sh your-server-ip
+
+# 或在服务器上 git pull 后直接执行
+./deploy/deploy.sh
 ```
 
-推送当前分支、SSH 到服务器、拉取代码、安装依赖、构建、重启 systemd 服务。
+重新构建镜像、停止旧容器、用相同 env/mount/port 启动新容器。
 
 ## API 使用
 

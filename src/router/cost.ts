@@ -22,6 +22,9 @@ const DEFAULT_PRICE_MODEL_ALIASES: Record<string, string> = {
   "deepseek-v4-flash": "deepseek/v4-flash",
   "deepseek/deepseek-v4-flash": "deepseek/v4-flash",
   "opencode-go/deepseek-v4-flash": "deepseek/v4-flash",
+  "deepseek-v4-pro": "deepseek/v4-pro",
+  "deepseek/deepseek-v4-pro": "deepseek/v4-pro",
+  "opencode-go/deepseek-v4-pro": "deepseek/v4-pro",
 };
 
 function safeTokenCount(value: number | undefined): number {

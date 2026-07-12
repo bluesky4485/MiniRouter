@@ -70,35 +70,85 @@ curl http://localhost:8402/health/ready
 `.env.example` enables `MINIROUTER_SOLO=true` so local requests can skip API
 keys. **Never expose solo mode to an untrusted network.**
 
-## Deploy to a server (Ubuntu 22.04 / 24.04)
+## Deploy to a server (Docker)
 
-Use the one-step setup script. It installs Node.js, creates a system user,
-clones the repo, builds the project, and registers a systemd service.
+MiniRouter runs in a two-stage Docker image. The build stage compiles
+better-sqlite3 from source; the production stage is a slim Node.js 22
+container.
+
+### Option A — docker compose (recommended)
 
 ```bash
 git clone https://github.com/lpffernando/MiniRouter.git
 cd MiniRouter
-chmod +x deploy/setup-server.sh
-sudo ./deploy/setup-server.sh
+
+# 1. Create your config
+cp .env.example .env
+# Edit .env: replace BASE_URL, API_KEY, and MODEL for each slot
+
+# 2. (Optional) Tune routing parameters
+#    Edit .env.tuning — defaults are already sensible.
+
+# 3. Build and start
+docker compose up -d
+
+# 4. Verify
+curl http://localhost:8402/health/ready
+# → { "status": "ready" }
+
+# 5. Check logs
+docker compose logs -f
 ```
 
-After the script finishes:
+Data persists in the `minirouter-data` Docker volume. To use a bind mount
+for direct host access to the SQLite file, edit `docker-compose.yml` and
+uncomment the `driver_opts` block.
+
+**China mainland builds:** Set the build arg in `docker-compose.yml`:
+
+```yaml
+args:
+  USE_CHINA_MIRROR: "true"
+  NPM_REGISTRY: "https://registry.npmmirror.com"
+```
+
+### Option B — plain docker run
 
 ```bash
-# 1. Put your API keys in
-sudo nano /opt/minirouter/minirouter/.env
+# Build (China: add --build-arg USE_CHINA_MIRROR=true)
+docker build -t minirouter:latest .
 
-# 2. Start
-sudo systemctl enable --now minirouter
-sudo systemctl status minirouter
-sudo journalctl -u minirouter -f
+# Run
+docker run -d \
+  --name minirouter \
+  --restart unless-stopped \
+  -p 8402:8402 \
+  -v /opt/minirouter-data:/data \
+  --env-file .env \
+  minirouter:latest
 ```
 
-The service runs as user `minirouter` on port 8402. Override defaults:
+### Option C — deploy.sh (build locally, push to server)
 
 ```bash
-MINIROUTER_USER=router-user MINIROUTER_BRANCH=dev sudo -E ./deploy/setup-server.sh
+# Build image locally, scp to server, recreate container
+./deploy/deploy.sh your-server-ip 22
+
+# Or run directly on the server
+./deploy/deploy.sh
 ```
+
+### Configuration files
+
+| File | Purpose | In repo? |
+| --- | --- | :---: |
+| `.env` | Secrets: API keys, base URLs, solo mode | No (gitignored) |
+| `.env.example` | Template with all available vars | Yes |
+| `.env.tuning` | Routing parameter defaults (no secrets) | Yes |
+
+`.env.tuning` is baked into the Docker image as `/app/.env.tuning`. It
+provides sensible routing defaults. Runtime `-e` vars and `.env` both
+take precedence over `.env.tuning`.
 
 ### Production bootstrap (first admin)
 
@@ -130,11 +180,15 @@ sudo systemctl reload nginx
 ### Update a running deployment
 
 ```bash
+# From your laptop
 ./deploy/deploy.sh your-server-ip
+
+# Or directly on the server after git pull
+./deploy/deploy.sh
 ```
 
-This pushes the current branch, SSHs in, pulls, installs, builds, and restarts
-the systemd unit.
+This rebuilds the image, stops the old container, and starts a new one with
+the same env/mounts/ports.
 
 ## API usage
 

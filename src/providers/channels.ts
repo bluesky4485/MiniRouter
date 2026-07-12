@@ -25,6 +25,9 @@ export type ChannelSelectionInput = {
   };
   cursor: number;
   now?: Date;
+  /** Channel ids already attempted in the current request — excluded so a
+   *  fallback loop tries a *different* channel instead of retrying the same. */
+  excludeIds?: string[];
 };
 
 export type ChannelSelection = {
@@ -53,6 +56,7 @@ export function selectProviderChannel(
     if (isCoolingDown(channel, now)) return false;
     if (input.requirements.toolCalling && !channel.supportsTools) return false;
     if (input.requirements.vision && !channel.supportsVision) return false;
+    if (input.excludeIds?.includes(channel.id)) return false;
     return true;
   });
 

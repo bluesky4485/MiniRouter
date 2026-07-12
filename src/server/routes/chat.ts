@@ -24,8 +24,7 @@ import { extractPromptDigest, extractLastUserText } from "../../routing/features
 import { createSseUsageTap } from "../sse-usage-tap.js";
 import { estimateUsdCostForModel } from "../../router/cost.js";
 import { isSpendLimitExceeded } from "../../db/queries/spend.js";
-import { channelToModelSlot, listProviderInstances, recordProviderFailure, recordProviderSuccess } from "../../db/queries/provider-instances.js";
-import { selectProviderChannel } from "../../providers/channels.js";
+import { executeWithChannelFallback } from "./channel-execution.js";
 
 type EnvLike = Record<string, string | undefined>;
 type RoutedTier = "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
@@ -38,7 +37,6 @@ type OptimizationLog = {
   };
 };
 
-const channelCursors = new Map<string, number>();
 const routingModelPricing = new Map<string, ModelPricing>();
 
 /**
@@ -159,22 +157,6 @@ async function executeConfiguredSlot(body: any, slot: ModelSlot): Promise<{ upst
       compression: optimized.compression,
     },
   };
-}
-
-async function applyManagedChannel(
-  slot: ModelSlot,
-  requirements: { toolCalling: boolean; vision: boolean },
-): Promise<ModelSlot> {
-  const channels = await listProviderInstances(slot.slot);
-  const cursor = channelCursors.get(slot.slot) ?? 0;
-  const selected = selectProviderChannel(channels, {
-    slot: slot.slot,
-    requirements,
-    cursor,
-  });
-  if (!selected) return slot;
-  channelCursors.set(slot.slot, selected.nextCursor);
-  return channelToModelSlot(selected.channel);
 }
 
 async function rejectIfSpendLimitExceeded(c: Context, auth: AuthResult): Promise<Response | undefined> {
@@ -375,23 +357,24 @@ export async function chatCompletions(c: Context) {
   trace("features_start");
   const features = extractRoutingFeatures(request);
   trace("features_done");
-  configured.slot = await applyManagedChannel(configured.slot, {
-    toolCalling: features.requirements.toolCalling,
-    vision: features.requirements.vision,
-  });
   let upstream: Response;
   let optimization: OptimizationLog = {};
   try {
     trace("execute_slot_start");
-    const result = await executeConfiguredSlot(body, configured.slot);
+    const result = await executeWithChannelFallback({
+      slot: configured.slot.slot,
+      requirements: {
+        toolCalling: features.requirements.toolCalling,
+        vision: features.requirements.vision,
+      },
+      executor: (slot) => executeConfiguredSlot(body, slot),
+    });
     trace(`execute_slot_done:${result.upstream.status}`);
     upstream = result.upstream;
     optimization = result.optimization;
-  } catch (error) {
-    trace(`execute_slot_error:${(error as Error).message}`);
-    if (configured.slot.providerInstanceId) {
-      await recordProviderFailure(configured.slot.providerInstanceId);
-    }
+    configured.slot = result.slot;
+  } catch {
+    trace("execute_slot_all_failed");
     return createProviderErrorResponse();
   }
 
@@ -501,13 +484,6 @@ export async function chatCompletions(c: Context) {
     });
   } catch (err) {
     console.error("[MiniRouter] Failed to write usage log:", (err as Error).message);
-  }
-  if (configured.slot.providerInstanceId) {
-    if (upstream.ok) {
-      await recordProviderSuccess(configured.slot.providerInstanceId, Date.now() - startedAt);
-    } else {
-      await recordProviderFailure(configured.slot.providerInstanceId);
-    }
   }
 
   return toMutableUpstreamResponse(upstream);

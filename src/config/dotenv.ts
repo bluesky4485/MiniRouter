@@ -36,3 +36,16 @@ export function loadDotEnv(path = resolve(process.cwd(), ".env")): void {
   }
 }
 
+/**
+ * Load defaults from the baked-in tuning file (no secrets).
+ * Call after `.env` so runtime/config values take precedence.
+ */
+export function loadDotEnvDefaults(path = resolve(process.cwd(), ".env.tuning")): void {
+  if (!existsSync(path)) return;
+  const parsed = parseDotEnv(readFileSync(path, "utf8"));
+
+  for (const [key, value] of Object.entries(parsed)) {
+    process.env[key] ??= value;
+  }
+}
+

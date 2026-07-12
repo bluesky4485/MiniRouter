@@ -1,54 +1,114 @@
 #!/usr/bin/env bash
-# MiniRouter 远程更新脚本
-# 本地执行: 推送代码 + SSH 到服务器拉取 + 重启
-# 用法: ./deploy/deploy.sh your-server-ip [ssh-port]
+# MiniRouter Docker deploy script
+#
+# Builds the image locally, copies it + source to the server, and
+# reconstructs the container with the same env / ports / mounts.
+#
+# Usage: ./deploy/deploy.sh <server-ip> [ssh-port]
+#   or just run on the server: ./deploy/deploy.sh
 set -euo pipefail
 
-SERVER_IP="${1:?Usage: $0 <server-ip> [ssh-port]}"
-SSH_PORT="${2:-22}"
-REMOTE_DIR="/opt/minirouter/minirouter"
-SSH_DEST="root@${SERVER_IP}"
+do_ssh() {
+  local dest="${1?}"
+  shift
+  ssh -p "${SSH_PORT}" "${dest}" "$@"
+}
 
-echo "=========================================="
-echo " MiniRouter Deploy"
-echo " Target: ${SERVER_IP}:${SSH_PORT}"
-echo "=========================================="
-
-# 1. 本地构建
-echo "[1/3] Building locally..."
-npm run build
-
-# 2. 推送到 GitHub
-echo "[2/3] Pushing to GitHub..."
-git push origin HEAD
-
-# 3. SSH 到服务器更新
-echo "[3/3] Updating server..."
-ssh -p "${SSH_PORT}" "${SSH_DEST}" "REMOTE_DIR='${REMOTE_DIR}' bash -s" <<'SCRIPT'
-set -euo pipefail
-cd "${REMOTE_DIR}"
-
-echo "  Pulling code..."
-BRANCH="$(git branch --show-current)"
-if [[ -z "${BRANCH}" ]]; then
-  echo "Deployment checkout is detached; check out a named branch first." >&2
-  exit 1
+# ── Detect local vs remote mode ─────────────────────────────────
+if [ $# -ge 1 ]; then
+  SERVER_IP="${1}"
+  SSH_PORT="${2:-22}"
+  SSH_DEST="root@${SERVER_IP}"
+  REMOTE=true
+else
+  REMOTE=false
 fi
-git pull --ff-only origin "${BRANCH}"
 
-echo "  Installing deps..."
-npm ci
+if $REMOTE; then
+  echo "=========================================="
+  echo " MiniRouter Deploy"
+  echo " Target: ${SERVER_IP}:${SSH_PORT}"
+  echo "=========================================="
 
-echo "  Building..."
-npm run build
+  # 1. Build image locally
+  echo "[1/3] Building Docker image..."
+  docker build --build-arg USE_CHINA_MIRROR=true \
+    --build-arg NPM_REGISTRY=https://registry.npmmirror.com \
+    -t minirouter:latest .
 
-echo "  Restarting service..."
-systemctl restart minirouter
+  # 2. Push current branch (so server can pull)
+  echo "[2/3] Pushing to git..."
+  git push origin HEAD
 
-echo "  Status:"
-systemctl status minirouter --no-pager | head -5
-SCRIPT
+  # 3. Copy image + deploy on server
+  echo "[3/3] Deploying to server..."
+  docker save minirouter:latest | gzip > /tmp/minirouter-latest.tar.gz
+  scp -P "${SSH_PORT}" /tmp/minirouter-latest.tar.gz "${SSH_DEST}:/tmp/"
+  rm -f /tmp/minirouter-latest.tar.gz
 
-echo ""
-echo "✅ Deploy complete!"
-echo "   Logs: journalctl -u minirouter -f"
+  do_ssh "${SSH_DEST}" <<'REMOTE_SCRIPT'
+set -euo pipefail
+
+# Source directory on server
+SRC_DIR="/opt/minirouter-src"
+
+# Pull latest code
+cd "${SRC_DIR}"
+git fetch origin
+git reset --hard origin/main
+
+# Load the new image
+docker load < /tmp/minirouter-latest.tar.gz
+rm -f /tmp/minirouter-latest.tar.gz
+
+# Stop and remove old container
+docker stop minirouter 2>/dev/null || true
+docker rm minirouter 2>/dev/null || true
+
+# Recreate container with the same settings
+docker run -d \
+  --name minirouter \
+  --restart unless-stopped \
+  -p 8402:8402 \
+  -v /opt/minirouter-data:/data \
+  --env-file "${SRC_DIR}/.env" \
+  minirouter:latest
+
+echo "  Container started. Checking health..."
+sleep 3
+docker ps --filter name=minirouter --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+REMOTE_SCRIPT
+
+  echo ""
+  echo "✅ Deploy complete!"
+  echo "   Logs: docker logs -f minirouter"
+
+else
+  # ── Local / on-server mode ────────────────────────────────────
+  echo "=========================================="
+  echo " MiniRouter Deploy (local)"
+  echo "=========================================="
+
+  echo "[1/2] Building Docker image..."
+  docker build --build-arg USE_CHINA_MIRROR=true \
+    --build-arg NPM_REGISTRY=https://registry.npmmirror.com \
+    -t minirouter:latest .
+
+  echo "[2/2] Recreating container..."
+  docker stop minirouter 2>/dev/null || true
+  docker rm minirouter 2>/dev/null || true
+
+  docker run -d \
+    --name minirouter \
+    --restart unless-stopped \
+    -p 8402:8402 \
+    -v /opt/minirouter-data:/data \
+    --env-file "$(pwd)/.env" \
+    minirouter:latest
+
+  sleep 3
+  docker ps --filter name=minirouter --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+  echo ""
+  echo "✅ Deploy complete!"
+  echo "   Logs: docker logs -f minirouter"
+fi
