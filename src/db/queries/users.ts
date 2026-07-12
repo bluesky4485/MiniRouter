@@ -105,3 +105,9 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
   await db.update(users).set(updates).where(eq(users.id, id));
   return getUserById(id);
 }
+
+export async function deleteUser(id: string): Promise<boolean> {
+  const db = getDb();
+  const result = await db.delete(users).where(eq(users.id, id));
+  return result ? true : false;
+}

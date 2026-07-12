@@ -34,6 +34,7 @@ import {
   adminCreateUser,
   adminGetUser,
   adminUpdateUser,
+  adminDeleteUser,
   adminListUserKeys,
   adminCreateUserKey,
   adminCreateKey,
@@ -100,6 +101,7 @@ export function createApp(): Hono {
   api.post("/admin/users", adminCreateUser);
   api.get("/admin/users/:id", adminGetUser);
   api.patch("/admin/users/:id", adminUpdateUser);
+  api.delete("/admin/users/:id", adminDeleteUser);
   api.get("/admin/users/:id/keys", adminListUserKeys);
   api.post("/admin/users/:id/keys", adminCreateUserKey);
   api.post("/admin/keys", adminCreateKey);

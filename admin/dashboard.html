@@ -222,6 +222,40 @@
   .copy-btn:hover { border-color:var(--accent); color:var(--accent); }
   .empty-state { color:var(--muted); padding:20px; text-align:center; }
   .loading-overlay { opacity:.6; pointer-events:none; }
+
+  /* API key reveal modal */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; z-index:1000;
+  }
+  .modal-overlay.hidden { display:none; }
+  .modal-box {
+    background:#fff; border-radius:12px; padding:32px; max-width:520px; width:90%;
+    box-shadow:0 8px 40px rgba(0,0,0,.2); text-align:center;
+  }
+  .modal-box h2 { margin:0 0 12px; font-size:20px; }
+  .modal-box p { margin:8px 0; color:var(--muted); font-size:14px; line-height:1.5; }
+  .key-display {
+    display:flex; align-items:center; gap:8px;
+    background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:12px 16px; margin:16px 0;
+  }
+  .key-display code {
+    flex:1; font-family:monospace; font-size:13px; word-break:break-all;
+    color:var(--accent); user-select:all;
+  }
+  .key-display button {
+    flex-shrink:0; cursor:pointer; font-size:14px; padding:6px 12px;
+    border:1px solid var(--line); border-radius:6px; background:#fff;
+  }
+  .key-display button:hover { border-color:var(--accent); }
+  .key-detail { font-size:13px; }
+  .key-hint { font-size:12px; background:var(--bg); padding:8px 12px; border-radius:6px; }
+  .btn-primary {
+    margin-top:16px; padding:10px 24px; font-size:14px; font-weight:600;
+    background:var(--accent); color:#fff; border:none; border-radius:8px; cursor:pointer;
+  }
+  .btn-primary:hover { opacity:.9; }
+
   @media (max-width:1100px) {
     header, main, .split { grid-template-columns:1fr; }
     .cards { grid-template-columns:repeat(2,minmax(140px,1fr)); }
@@ -254,6 +288,21 @@
     <div id="loginStatus" class="status">Admin access required.</div>
   </div>
 </section>
+
+<!-- API key reveal modal (shown once after first-time setup) -->
+<div id="keyModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>🎉 Admin Account Created</h2>
+    <p>This is your <strong>only</strong> chance to save this API key. It will not be shown again.</p>
+    <div class="key-display">
+      <code id="keyModalValue"></code>
+      <button id="keyModalCopy" data-action="copy-key">📋 Copy</button>
+    </div>
+    <p class="key-detail">Account: <span id="keyModalEmail"></span> (<span id="keyModalName"></span>)</p>
+    <p class="key-hint">Use this key with <code>Authorization: Bearer &lt;key&gt;</code> to call the admin API or route requests.</p>
+    <button id="keyModalDone" data-action="close-key-modal" class="btn-primary">I've saved it — Continue</button>
+  </div>
+</div>
 
 <div id="appShell" class="hidden">
 <header>
@@ -442,6 +491,13 @@
     $("appShell").classList.remove("hidden");
   }
 
+  function showApiKey(key, email, name) {
+    $("keyModalValue").textContent = key;
+    $("keyModalEmail").textContent = email || "admin@minirouter.local";
+    $("keyModalName").textContent = name || "Admin";
+    $("keyModal").classList.remove("hidden");
+  }
+
   function loading(on) {
     const main = $("appMain");
     if (on) {
@@ -517,7 +573,10 @@
 
   // ── API ────────────────────────────────────────────────────────
   function headers() {
-    return { authorization: "Bearer " + token(), "content-type": "application/json" };
+    const t = token();
+    const h = { "content-type": "application/json" };
+    if (t) h["authorization"] = "Bearer " + t;
+    return h;
   }
 
   async function api(path, options = {}) {
@@ -565,14 +624,10 @@
       const text = await res.text();
       const data = text ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
-      // Save the key and log in
+      // Save the key
       setToken(data.api_key);
-      setLoginStatus("Admin account created! Key saved.", "ok");
-      document.querySelectorAll(".login-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "login"));
-      $("loginForm").classList.remove("hidden");
-      $("registerForm").classList.add("hidden");
-      $("loginToken").value = data.api_key;
-      await refreshAll();
+      // Show the key to the user — it won't be shown again
+      showApiKey(data.api_key, data.email, data.name);
     } catch (err) {
       setLoginStatus("Setup failed: " + err.message, "bad");
     } finally {
@@ -614,6 +669,7 @@
             <td class="tiny-actions">
               <button class="secondary" data-action="select-user" data-user-id="${escHtml(u.id)}" data-user-email="${escHtml(u.email)}">Keys</button>
               <button class="secondary" data-action="toggle-user" data-user-id="${escHtml(u.id)}" data-active="${toggleVal}">${toggleText}</button>
+              ${u.role !== "superadmin" ? `<button class="danger" data-action="delete-user" data-user-id="${escHtml(u.id)}" data-user-email="${escHtml(u.email)}">Delete</button>` : ""}
             </td>
           </tr>`;
         }).join("")
@@ -669,6 +725,12 @@
 
   async function toggleUser(userId, active) {
     await api("/admin/users/" + userId, { method: "PATCH", body: JSON.stringify({ isActive: active }) });
+    await loadUsers();
+  }
+
+  async function deleteUser(userId, email) {
+    if (!confirm("Delete user " + email + "? This cannot be undone.")) return;
+    await api("/admin/users/" + userId, { method: "DELETE" });
     await loadUsers();
   }
 
@@ -836,6 +898,32 @@
       case "register":
         register().catch((err) => setLoginStatus("Setup failed: " + err.message, "bad"));
         break;
+      case "copy-key":
+        (async () => {
+          const key = $("keyModalValue").textContent;
+          try {
+            await navigator.clipboard.writeText(key);
+            btn.textContent = "✅ Copied!";
+            setTimeout(() => { btn.textContent = "📋 Copy"; }, 2000);
+          } catch {
+            const ta = document.createElement("textarea");
+            ta.value = key; ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta); ta.select();
+            document.execCommand("copy"); document.body.removeChild(ta);
+            btn.textContent = "✅ Copied!";
+            setTimeout(() => { btn.textContent = "📋 Copy"; }, 2000);
+          }
+        })();
+        break;
+      case "close-key-modal":
+        $("keyModal").classList.add("hidden");
+        setLoginStatus("Admin account created! Key saved.", "ok");
+        document.querySelectorAll(".login-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "login"));
+        $("loginForm").classList.remove("hidden");
+        $("registerForm").classList.add("hidden");
+        $("loginToken").value = token();
+        refreshAll();
+        break;
       case "refresh":
         refreshAll();
         break;
@@ -865,6 +953,9 @@
       }
       case "revoke-key":
         revokeKey(btn.dataset.keyId).catch((err) => setNotice(err.message));
+        break;
+      case "delete-user":
+        deleteUser(btn.dataset.userId, btn.dataset.userEmail).catch((err) => setNotice(err.message));
         break;
       case "toggle-channel": {
         const cid = btn.dataset.channelId;
@@ -905,6 +996,10 @@
       if (!loginInput.closest(".hidden") && document.activeElement === loginInput) {
         login();
       }
+      const regEmail = $("regEmail");
+      if (!regEmail.closest(".hidden") && (document.activeElement === regEmail || document.activeElement === $("regName"))) {
+        $("registerBtn").click();
+      }
     }
   });
 
@@ -913,12 +1008,7 @@
     try {
       setNotice("");
       loading(true);
-      if (!token()) {
-        setAuthStatus("No admin token loaded.", "bad");
-        showLogin("Admin access required.", "bad");
-        return;
-      }
-      // Verify the token first
+      // Verify the token (or solo mode if no token)
       await api("/admin/verify");
       await Promise.all([loadOverview(), loadUsers(), loadChannels(), loadLogs()]);
       if (selectedUserId) await loadKeys();
@@ -933,11 +1023,11 @@
   }
 
   // ── Init ──────────────────────────────────────────────────────
-  // If a token is already stored, try to use it
+  // If a token is already stored, use it; otherwise try solo mode
   if (token()) {
     $("loginToken").value = token();
-    refreshAll();
   }
+  refreshAll();
 })();
 </script>
 </html>

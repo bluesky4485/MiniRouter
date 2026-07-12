@@ -119,20 +119,30 @@ cd MiniRouter
 # 1. Create your config
 cp .env.example .env
 # Edit .env: replace BASE_URL, API_KEY, and MODEL for each slot
+# Tip: you can also configure channels later via the admin dashboard
 
 # 2. Install and start
 npm ci
 npm run build
 npm start
 # MiniRouter listening on http://localhost:8402
+# dashboard: http://localhost:8402/admin/dashboard
 
-# 3. Verify
-curl http://localhost:8402/health/ready
-# → { "status": "ready" }
+# 3. First-time setup — open the admin dashboard
+#    Visit http://localhost:8402/admin/dashboard
+#    → "First-time Setup" tab → register an admin account
+#    → Save the API key shown (it won't be shown again)
+#    → Now you can add provider channels, create users, etc.
 ```
 
 `.env.example` enables `MINIROUTER_SOLO=true` so local requests can skip API
 keys. **Never expose solo mode to an untrusted network.**
+
+Once channels are configured, verify readiness:
+
+```bash
+curl http://localhost:8402/health/ready
+# → { "status": "ready" }
 
 ## Deploy to a server (Docker)
 
@@ -157,11 +167,16 @@ cp .env.example .env
 # 3. Build and start
 docker compose up -d
 
-# 4. Verify
+# 4. First-time setup
+#    Visit http://<server-ip>:8402/admin/dashboard
+#    → "First-time Setup" tab → register an admin account → save the key
+#    Note: set MINIROUTER_SOLO=false in .env for production
+
+# 5. Verify
 curl http://localhost:8402/health/ready
 # → { "status": "ready" }
 
-# 5. Check logs
+# 6. Check logs
 docker compose logs -f
 ```
 
@@ -216,7 +231,13 @@ Secrets stay in the gitignored `.env` and are loaded via `env_file:`.
 
 ### Production bootstrap (first admin)
 
-On the first production start set these in `.env`:
+Two ways to create the first admin:
+
+**Option 1 — Admin dashboard (recommended)**: start the server, visit
+`http://<server-ip>:8402/admin/dashboard`, use the "First-time Setup" tab
+to register an admin account, and save the returned API key.
+
+**Option 2 — Environment variable**: set in `.env`:
 
 ```env
 MINIROUTER_SOLO=false
@@ -598,19 +619,6 @@ node -e "
 ```
 
 See [docs/db-queries.md](docs/db-queries.md) for more query recipes.
-
-## Model score dashboard
-
-MiniRouter ships an optional searchable model comparison table at
-`/models/dashboard`. Populate it once:
-
-```bash
-npm run seed:models
-```
-
-This writes pricing and benchmark data from `models/seed-data.json` into the
-SQLite database. The seed is manual so local customisations are not clobbered
-on restart.
 
 ## Development
 

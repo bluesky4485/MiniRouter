@@ -7,7 +7,7 @@ import type { AuthResult } from "../../auth/types.js";
 import { ApiKeyAuthProvider, createApiKey, listApiKeysForUser, revokeApiKey } from "../../auth/apikey.js";
 import { getPlatformOverview } from "../../db/queries/spend.js";
 import { getUserUsageStats } from "../../db/queries/usage.js";
-import { createUser, getUserByEmail, getUserById, listUsers, updateUser } from "../../db/queries/users.js";
+import { createUser, deleteUser, getUserByEmail, getUserById, listUsers, updateUser } from "../../db/queries/users.js";
 import {
   createProviderInstance,
   disableProviderInstance,
@@ -37,7 +37,7 @@ type CreateKeyRequest = {
  */
 export async function setup(c: Context) {
   const db = getDb();
-  const existing = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
+  const existing = await db.select({ count: sql<number>`COUNT(*)` }).from(users).where(sql`id != 'solo'`);
   if (Number(existing[0]?.count ?? 0) > 0) {
     return c.json({ error: { message: "Setup already completed. An admin user already exists.", type: "setup_complete" } }, 409);
   }
@@ -204,6 +204,18 @@ export async function adminUpdateUser(c: Context) {
   });
   if (!user) return c.json({ error: { message: "User not found" } }, 404);
   return c.json(user);
+}
+
+export async function adminDeleteUser(c: Context) {
+  requireAdmin(c);
+  const id = c.req.param("id")!;
+  const user = await getUserById(id);
+  if (!user) return c.json({ error: { message: "User not found" } }, 404);
+  if (user.role === "superadmin") {
+    return c.json({ error: { message: "Cannot delete a superadmin user" } }, 403);
+  }
+  await deleteUser(id);
+  return c.json({ status: "deleted", user_id: id });
 }
 
 export async function adminListUserKeys(c: Context) {

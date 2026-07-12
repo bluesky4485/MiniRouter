@@ -107,20 +107,30 @@ cd MiniRouter
 # 1. 创建配置文件
 cp .env.example .env
 # 编辑 .env：替换每个槽位的 BASE_URL、API_KEY、MODEL
+# 提示：也可以稍后通过管理后台配置渠道
 
 # 2. 安装并启动
 npm ci
 npm run build
 npm start
 # MiniRouter 监听 http://localhost:8402
+# 管理后台：http://localhost:8402/admin/dashboard
 
-# 3. 验证
-curl http://localhost:8402/health/ready
-# → { "status": "ready" }
+# 3. 首次初始化 — 打开管理后台
+#    访问 http://localhost:8402/admin/dashboard
+#    → "首次设置" 标签页 → 注册管理员账户
+#    → 保存显示的 API key（仅显示一次）
+#    → 现在可以添加渠道、创建用户等
 ```
 
 `.env.example` 默认启用了 `MINIROUTER_SOLO=true`，本地请求无需 API key。
 **切勿将 solo 模式暴露到不信任的网络。**
+
+配置好渠道后，验证就绪状态：
+
+```bash
+curl http://localhost:8402/health/ready
+# → { "status": "ready" }
 
 ## 部署到服务器（Docker）
 
@@ -144,11 +154,16 @@ cp .env.example .env
 # 3. 构建并启动
 docker compose up -d
 
-# 4. 验证
+# 4. 首次初始化
+#    访问 http://<服务器IP>:8402/admin/dashboard
+#    → "首次设置" 标签页 → 注册管理员账户 → 保存 API key
+#    注意：生产环境需在 .env 中设置 MINIROUTER_SOLO=false
+
+# 5. 验证
 curl http://localhost:8402/health/ready
 # → { "status": "ready" }
 
-# 5. 查看日志
+# 6. 查看日志
 docker compose logs -f
 ```
 
@@ -203,7 +218,12 @@ docker run -d \
 
 ### 生产环境首次启动
 
-首次生产启动时，在 `.env` 中设置：
+有两种方式创建首个管理员：
+
+**方式 1 — 管理后台（推荐）**：启动后访问 `http://<服务器IP>:8402/admin/dashboard`，
+在"首次设置"标签页注册管理员，保存返回的 API key。
+
+**方式 2 — 环境变量**：在 `.env` 中设置：
 
 ```env
 MINIROUTER_SOLO=false
@@ -574,17 +594,6 @@ node -e "
 ```
 
 更多查询技巧见 [docs/db-queries.md](docs/db-queries.md)。
-
-## 模型评分仪表盘
-
-MiniRouter 内置了一个可搜索的模型对比表，访问 `/models/dashboard`。首次使用前导入数据：
-
-```bash
-npm run seed:models
-```
-
-这会将 `models/seed-data.json` 中的定价和基准测试数据写入 SQLite 数据库。
-种子数据是手动导入的，重启不会覆盖本地修改。
 
 ## 开发
 

@@ -70,6 +70,6 @@ serve(
   },
   (info) => {
     console.log(`[MiniRouter] listening on http://localhost:${info.port}`);
-    console.log(`[MiniRouter] dashboard: http://localhost:${info.port}/models/dashboard`);
+    console.log(`[MiniRouter] dashboard: http://localhost:${info.port}/admin/dashboard`);
   },
 );
