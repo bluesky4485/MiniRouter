@@ -4,7 +4,7 @@
 
 import type { Context } from "hono";
 import type { AuthResult } from "../../auth/types.js";
-import { ApiKeyAuthProvider, createApiKey, listApiKeysForUser, revokeApiKey } from "../../auth/apikey.js";
+import { createApiKey, listApiKeysForUser, revokeApiKey } from "../../auth/apikey.js";
 import { getPlatformOverview } from "../../db/queries/spend.js";
 import { getUserUsageStats } from "../../db/queries/usage.js";
 import { createUser, deleteUser, getUserByEmail, getUserById, listUsers, updateUser } from "../../db/queries/users.js";
