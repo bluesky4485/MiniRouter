@@ -1,15 +1,56 @@
-node_modules
-.git
-dist
-docs
-.claude
-.codex
-deploy
-*.md
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Git
+.git/
 .gitignore
-.dockerignore
-.env*
-*.bat
-vitest.config.*
-eslint.config.*
-.prettierrc*
+
+# Environment & secrets (never in image)
+.env
+.env.*
+*.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Logs & temporary
+*.log
+logs/
+tmp/
+.tmp/
+*.tmp
+.worktrees/
+
+# Documentation & non-production
+docs/
+archive/
+scripts/
+tools/
+*.md
+!README.md
+!README_CN.md
+LICENSE
+SECURITY.md
+CONTRIBUTING.md
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Test & dev tooling (tests not needed at runtime)
+**/*.test.ts
+**/*.test.js
+**/*.test.mjs
+coverage/
+vitest.config.ts
+
+# CI (workflow files not needed inside image)
+.github/

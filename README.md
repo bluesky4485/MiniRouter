@@ -115,7 +115,7 @@ premium tokens on trivial queries.
 ## Quick start (local)
 
 ```bash
-git clone https://github.com/lpffernando/MiniRouter.git
+git clone https://github.com/bluesky4485/MiniRouter.git
 cd MiniRouter
 
 # 1. Create your config
@@ -152,10 +152,94 @@ MiniRouter runs in a two-stage Docker image. The build stage compiles
 better-sqlite3 from source; the production stage is a slim Node.js 22
 container.
 
-### Option A — docker compose (recommended)
+GitHub Actions automatically builds **multi-architecture** images
+(`linux/amd64` + `linux/arm64`) and publishes them on every push to `main`
+and on version tags (`v*`).
+
+**Current setup**: Images are published only to GHCR by default
+(`ghcr.io/bluesky4485/minirouter`).
+
+- Zero config, ready to use
+- Multi-arch support (amd64 + arm64)
+- Integrated with GitHub repository permissions
+
+Docker Hub sync is still supported as an opt-in feature (it will automatically
+also push when `DOCKERHUB_TOKEN` secret is configured).
+
+### Manual builds (for faster testing)
+
+When you go to **Actions → "Docker Build & Publish" → "Run workflow"**,
+you can choose the target platforms:
+
+- `linux/amd64,linux/arm64` (default — full multi-arch)
+- `linux/amd64` (amd64 only — much faster, useful for quick testing)
+
+Automatic builds (push to main or version tags) always build both architectures.
+
+### Option A — Use pre-built image (recommended)
+
+No need to clone source or build on the target server.
+
+**1. On the server**
 
 ```bash
-git clone https://github.com/lpffernando/MiniRouter.git
+mkdir -p /opt/minirouter
+cd /opt/minirouter
+```
+
+**2. Create `docker-compose.yml`** (minimal production example):
+
+```yaml
+services:
+  minirouter:
+    image: ghcr.io/bluesky4485/minirouter:latest
+    container_name: minirouter
+    restart: unless-stopped
+    ports:
+      - "8402:8402"
+      - "8082:8402"
+    env_file:
+      - .env
+    volumes:
+      - /opt/minirouter-data:/data
+```
+
+Copy the routing `environment:` variables you need from the repo's
+`docker-compose.yml` (they are safe to commit).
+
+**3. Prepare `.env`** (same as before, with your provider keys)
+
+**4. Start**
+
+```bash
+docker compose up -d
+```
+
+**Update later:**
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+**Image tags available:**
+
+- `latest` — current main
+- `v0.2.0`, `0.2`, `0` — semantic versions (push a git tag `v0.2.0`)
+- `sha-xxxxxxx` — specific commit
+
+**Multi-arch**: Docker will automatically pick the right image for your machine
+(Apple Silicon Mac → arm64, normal PC/server → amd64).
+
+**China users**: GHCR can be slow/unreachable. In that case use **Option B** (build from source with China mirrors).
+
+**Private repository note**: If your fork/repo is private, GHCR images are private too.
+You must `docker login ghcr.io` with a Personal Access Token (read:packages) before `docker compose pull`.
+
+### Option B — docker compose build from source (China / development)
+
+```bash
+git clone https://github.com/bluesky4485/MiniRouter.git
 cd MiniRouter
 
 # 1. Create your config
@@ -184,39 +268,46 @@ docker compose logs -f
 
 Data persists in the `minirouter-data` Docker volume. To use a bind mount
 for direct host access to the SQLite file, edit `docker-compose.yml` and
-uncomment the `driver_opts` block.
+uncomment the `driver_opts` block (see full example in repo).
 
-**China mainland builds:** Set the build arg in `docker-compose.yml`:
+**China mainland builds:** Uncomment the `build:` section in `docker-compose.yml`
+and set the args:
 
 ```yaml
-args:
-  USE_CHINA_MIRROR: "true"
-  NPM_REGISTRY: "https://registry.npmmirror.com"
+    build:
+      context: .
+      args:
+        USE_CHINA_MIRROR: "true"
+        NPM_REGISTRY: "https://registry.npmmirror.com"
 ```
 
-### Option B — plain docker run
+### Option C — plain docker run (from pre-built or local image)
 
 ```bash
-# Build (China: add --build-arg USE_CHINA_MIRROR=true)
-docker build -t minirouter:latest .
+docker pull ghcr.io/bluesky4485/minirouter:latest
 
-# Run
+# Or build from source yourself (China: add --build-arg USE_CHINA_MIRROR=true)
+# docker build -t ghcr.io/bluesky4485/minirouter:latest .
+
 docker run -d \
   --name minirouter \
   --restart unless-stopped \
   -p 8402:8402 \
   -v /opt/minirouter-data:/data \
   --env-file .env \
-  minirouter:latest
+  ghcr.io/bluesky4485/minirouter:latest
 ```
 
-### Option C — deploy.sh (build locally, push to server)
+### Option D — deploy.sh (source upload + build on server)
+
+This is the legacy flow that uploads source code and runs `docker compose up --build` remotely.
+Still useful if you want to keep everything in one git repo on the server.
 
 ```bash
 # Build image locally, scp to server, recreate container
 ./deploy/deploy.sh your-server-ip 22
 
-# Or run directly on the server
+# Or run directly on the server after git pull
 ./deploy/deploy.sh
 ```
 
@@ -266,6 +357,15 @@ sudo systemctl reload nginx
 
 ### Update a running deployment
 
+**Using pre-built image (recommended):**
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+**Using source + build (deploy.sh or on server):**
+
 ```bash
 # From your laptop
 ./deploy/deploy.sh your-server-ip
@@ -274,7 +374,7 @@ sudo systemctl reload nginx
 ./deploy/deploy.sh
 ```
 
-This rebuilds the image, stops the old container, and starts a new one with
+This rebuilds (or pulls) the image, stops the old container, and starts a new one with
 the same env/mounts/ports.
 
 ## API usage

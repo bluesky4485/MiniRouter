@@ -103,7 +103,7 @@ MiniRouter 自动把请求路由到对应的套餐。贵价套餐留给真正需
 ## 快速开始（本地）
 
 ```bash
-git clone https://github.com/lpffernando/MiniRouter.git
+git clone https://github.com/bluesky4485/MiniRouter.git
 cd MiniRouter
 
 # 1. 创建配置文件
@@ -139,10 +139,91 @@ curl http://localhost:8402/health/ready
 MiniRouter 使用两阶段 Docker 镜像。构建阶段从源码编译 better-sqlite3，
 生产阶段是精简的 Node.js 22 容器。
 
-### 方式 A — docker compose（推荐）
+GitHub Actions 会在每次推送到 `main` 分支以及打版本标签（`v*`）时，
+自动构建**多架构**镜像（`linux/amd64` + `linux/arm64`）并发布。
+
+**当前配置**：CI 默认只推送到 GHCR（`ghcr.io/bluesky4485/minirouter`）。
+
+- 零配置、直接可用
+- 多架构支持（amd64 + arm64）
+- 和 GitHub 仓库权限打通
+
+**Docker Hub 同步功能仍然保留**：当仓库配置了 `DOCKERHUB_TOKEN` 这个 secret 时，workflow 会自动同时推送到 Docker Hub。
+
+### 手动触发构建（加速测试）
+
+在 GitHub 仓库页面点击 **Actions → "Docker Build & Publish" → Run workflow** 时，
+可以选择构建平台：
+
+- `linux/amd64,linux/arm64`（默认，完整多架构）
+- `linux/amd64`（仅 amd64，构建速度快很多，适合快速验证）
+
+自动触发（push main 或打版本标签）始终构建双架构。
+
+### 方式 A — 使用预构建镜像（推荐）
+
+服务器上无需克隆源码、无需构建。
+
+**1. 在服务器上操作**
 
 ```bash
-git clone https://github.com/lpffernando/MiniRouter.git
+mkdir -p /opt/minirouter
+cd /opt/minirouter
+```
+
+**2. 创建 `docker-compose.yml`**（最小生产示例）：
+
+```yaml
+services:
+  minirouter:
+    image: ghcr.io/bluesky4485/minirouter:latest
+    container_name: minirouter
+    restart: unless-stopped
+    ports:
+      - "8402:8402"
+      - "8082:8402"
+    env_file:
+      - .env
+    volumes:
+      - /opt/minirouter-data:/data
+```
+
+把需要的路由 `environment:` 变量从仓库的 `docker-compose.yml` 复制过来（这些配置可以提交）。
+
+**3. 准备 `.env`**（同之前，填好你的上游密钥）
+
+**4. 启动**
+
+```bash
+docker compose up -d
+```
+
+**后续更新：**
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+**可用镜像标签**：
+
+- `latest` — 主干最新
+- `v0.2.0`、`0.2`、`0` — 语义化版本（打 git 标签 `v0.2.0` 后自动发布）
+- `sha-xxxxxxx` — 具体 commit
+
+**多架构支持**：Docker 会自动根据你的机器选择正确架构
+（Apple Silicon Mac → arm64，普通 x86 服务器 → amd64）。
+
+**国内用户注意**：GHCR 在国内访问可能较慢或受限，此时请使用 **方式 B**（源码构建 + 国内镜像）。
+
+**私有仓库说明**：如果你的仓库是私有的，GHCR 镜像也是私有的。
+需要在服务器上先用 Personal Access Token（权限 read:packages）执行
+`docker login ghcr.io` 后再 `docker compose pull`。
+
+### 方式 B — docker compose 从源码构建（国内 / 开发）
+
+```bash
+git clone https://github.com/bluesky4485/MiniRouter.git
 cd MiniRouter
 
 # 1. 创建配置文件
@@ -173,19 +254,23 @@ docker compose logs -f
 让宿主机直接访问 SQLite 文件，编辑 `docker-compose.yml` 取消注释
 `driver_opts` 块。
 
-**国内构建：** 在 `docker-compose.yml` 中设置 build arg：
+**国内构建：** 取消注释 `docker-compose.yml` 中的 `build:` 部分，并设置参数：
 
 ```yaml
-args:
-  USE_CHINA_MIRROR: "true"
-  NPM_REGISTRY: "https://registry.npmmirror.com"
+    build:
+      context: .
+      args:
+        USE_CHINA_MIRROR: "true"
+        NPM_REGISTRY: "https://registry.npmmirror.com"
 ```
 
-### 方式 B — 手动 docker run
+### 方式 C — 手动 docker run
 
 ```bash
-# 构建（国内加 --build-arg USE_CHINA_MIRROR=true）
-docker build -t minirouter:latest .
+docker pull ghcr.io/bluesky4485/minirouter:latest
+
+# 或自己从源码构建（国内可加 --build-arg USE_CHINA_MIRROR=true）
+# docker build -t ghcr.io/bluesky4485/minirouter:latest .
 
 # 运行
 docker run -d \
@@ -194,10 +279,13 @@ docker run -d \
   -p 8402:8402 \
   -v /opt/minirouter-data:/data \
   --env-file .env \
-  minirouter:latest
+  ghcr.io/bluesky4485/minirouter:latest
 ```
 
-### 方式 C — deploy.sh（本地构建，推送到服务器）
+### 方式 D — deploy.sh（源码上传 + 服务器端构建）
+
+这是旧的部署方式，会把源码上传到服务器并执行 `docker compose up --build`。
+如果你希望服务器上保留完整源码仓库，仍可使用。
 
 ```bash
 # 从本机构建镜像，scp 到服务器，重建容器
@@ -251,6 +339,15 @@ sudo systemctl reload nginx
 
 ### 更新部署
 
+**使用预构建镜像（推荐）：**
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+**使用源码构建（deploy.sh 或服务器上）：**
+
 ```bash
 # 从本机
 ./deploy/deploy.sh your-server-ip
@@ -259,7 +356,7 @@ sudo systemctl reload nginx
 ./deploy/deploy.sh
 ```
 
-重新构建镜像、停止旧容器、用相同 env/mount/port 启动新容器。
+重新拉取（或构建）镜像、停止旧容器、用相同 env/mount/port 启动新容器。
 
 ## API 使用
 

@@ -6,11 +6,12 @@
 #
 # Secrets (provider API keys) live ONLY in the server-side `.env`
 # (gitignored) and are passed via `env_file:` below.
-# Provider endpoints/models also stay in that gitignored `.env` so the
-# deployment topology is never committed.
 #
-# Usage on the server (/opt/minirouter-src):
-#   docker compose up -d --build --force-recreate
+# Pre-built images are published by GitHub Actions to GHCR (multi-arch).
+# Default image: ghcr.io/bluesky4485/minirouter:latest
+#
+# Usage on the server:
+#   docker compose up -d
 #
 # Ports:
 #   8402 -> container API (internal)
@@ -18,13 +19,18 @@
 
 services:
   minirouter:
-    image: minirouter:latest
-    build:
-      context: .
-      args:
-        # Set to "true" for mainland China (apt mirrors + npmmirror)
-        USE_CHINA_MIRROR: "true"
-        NPM_REGISTRY: "https://registry.npmmirror.com"
+    # ── Pre-built multi-arch image (recommended) ──────────────────────
+    # GitHub Actions 自动构建 linux/amd64 + linux/arm64 两个架构。
+    # Apple Silicon Mac 和 Linux arm64 服务器会自动拉到对应版本。
+    image: ghcr.io/bluesky4485/minirouter:latest
+
+    # ── Alternative: build from source (good for China / custom) ─────
+    # build:
+    #   context: .
+    #   args:
+    #     # Set to "true" for mainland China (apt mirrors + npmmirror)
+    #     USE_CHINA_MIRROR: "true"
+    #     NPM_REGISTRY: "https://registry.npmmirror.com"
     container_name: minirouter
     restart: unless-stopped
     ports:
