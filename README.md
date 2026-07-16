@@ -197,13 +197,13 @@ services:
     restart: unless-stopped
     ports:
       - "8402:8402"
-      - "8082:8402"
     env_file:
       - .env
     volumes:
       - /opt/minirouter-data:/data
 ```
 
+Clients use `http://<host>:8082` (or `:8402` if you keep the direct mapping).
 Copy the routing `environment:` variables you need from the repo's
 `docker-compose.yml` (they are safe to commit).
 
@@ -254,12 +254,12 @@ cp .env.example .env
 docker compose up -d
 
 # 4. First-time setup
-#    Visit http://<server-ip>:8402/admin/dashboard
+#    Visit http://<server-ip>:8082/admin/dashboard  (or :8402 if mapped)
 #    → "First-time Setup" tab → register an admin account → save the key
 #    Note: set MINIROUTER_SOLO=false in .env for production
 
 # 5. Verify
-curl http://localhost:8402/health/ready
+curl http://localhost:8082/health/ready
 # → { "status": "ready" }
 
 # 6. Check logs

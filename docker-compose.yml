@@ -13,9 +13,6 @@
 # Usage on the server:
 #   docker compose up -d
 #
-# Ports:
-#   8402 -> container API (internal)
-#   8082 -> public API, clients use http://<host>:8082/v1
 
 services:
   minirouter:
@@ -34,7 +31,6 @@ services:
     container_name: minirouter
     restart: unless-stopped
     ports:
-      - "8402:8402"
       - "8082:8402"
     env_file:
       - .env

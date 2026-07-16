@@ -181,13 +181,13 @@ services:
     restart: unless-stopped
     ports:
       - "8402:8402"
-      - "8082:8402"
     env_file:
       - .env
     volumes:
       - /opt/minirouter-data:/data
 ```
 
+客户端访问 `http://<host>:8082`（若保留直连映射也可用 `:8402`）。
 把需要的路由 `environment:` 变量从仓库的 `docker-compose.yml` 复制过来（这些配置可以提交）。
 
 **3. 准备 `.env`**（同之前，填好你的上游密钥）
@@ -238,12 +238,12 @@ cp .env.example .env
 docker compose up -d
 
 # 4. 首次初始化
-#    访问 http://<服务器IP>:8402/admin/dashboard
+#    访问 http://<服务器IP>:8082/admin/dashboard  （或 :8402，若已映射）
 #    → "首次设置" 标签页 → 注册管理员账户 → 保存 API key
 #    注意：生产环境需在 .env 中设置 MINIROUTER_SOLO=false
 
 # 5. 验证
-curl http://localhost:8402/health/ready
+curl http://localhost:8082/health/ready
 # → { "status": "ready" }
 
 # 6. 查看日志
