@@ -319,8 +319,13 @@ export async function adminUpdateChannel(c: Context) {
   const body = await c.req.json();
 
   // Only allow safe fields to be updated via admin UI.
-  // Never allow changing identity fields (slot, model, url, apiKey, etc.) here.
+  // Changing slot is allowed (to reassign channel to different tier).
+  // Never touch identity/sensitive fields like apiKey, endpointUrl, modelId here.
   const safeUpdate: Record<string, any> = {};
+  const validSlots = ['balanced', 'fast', 'strong', 'vision'];
+  if (body.slot && validSlots.includes(body.slot)) {
+    safeUpdate.slot = body.slot;
+  }
   if (typeof body.weight === 'number' && body.weight > 0) {
     safeUpdate.weight = Math.floor(body.weight);
   }

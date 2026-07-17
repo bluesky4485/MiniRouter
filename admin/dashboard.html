@@ -532,7 +532,10 @@
       supportsTools: "supports tools",
       supportsVision: "supports vision",
       addChannel: "Add Channel",
-      edit: "Edit",
+      edit: "Edit Weight",
+      editSlot: "Edit Slot",
+      editSlotPrompt: "Enter new slot (balanced / fast / strong / vision):",
+      invalidSlot: "Invalid slot. Valid options: balanced, fast, strong, vision.",
       editWeightPrompt: "Enter new weight (positive integer):",
       invalidWeight: "Weight must be a positive integer.",
       thSlot: "Slot",
@@ -677,7 +680,10 @@
       supportsTools: "支持工具调用",
       supportsVision: "支持视觉",
       addChannel: "添加渠道",
-      edit: "编辑",
+      edit: "编辑权重",
+      editSlot: "编辑槽位",
+      editSlotPrompt: "输入新的槽位（balanced / fast / strong / vision）：",
+      invalidSlot: "槽位无效。有效选项：balanced, fast, strong, vision。",
       editWeightPrompt: "输入新的权重（正整数）：",
       invalidWeight: "权重必须是正整数。",
       thSlot: "槽位",
@@ -1121,6 +1127,7 @@
             <td>${weight}</td>
             <td><span class="pill ${healthCls}">${healthText}</span></td>
             <td class="tiny-actions">
+              <button class="secondary" data-action="edit-slot" data-channel-id="${escHtml(c.id)}" data-slot="${escHtml(c.slot)}">${t("editSlot")}</button>
               <button class="secondary" data-action="edit-channel" data-channel-id="${escHtml(c.id)}" data-weight="${weight}">${t("edit")}</button>
               <button class="secondary" data-action="toggle-channel" data-channel-id="${escHtml(c.id)}" data-healthy="${actionVal}">${actionLabel}</button>
             </td>
@@ -1182,6 +1189,27 @@
     await api("/admin/channels/" + channelId, {
       method: "PATCH",
       body: JSON.stringify({ weight: newWeight }),
+    });
+    await loadChannels();
+  }
+
+  async function editChannelSlot(channelId, currentSlot) {
+    const slots = ["balanced", "fast", "strong", "vision"];
+    const newSlot = prompt(
+      t("editSlotPrompt"),
+      currentSlot
+    );
+    if (!newSlot) return;
+    if (!slots.includes(newSlot)) {
+      alert(t("invalidSlot"));
+      return;
+    }
+    if (newSlot === currentSlot) return;
+
+    // Only send the slot field. Safe partial update.
+    await api("/admin/channels/" + channelId, {
+      method: "PATCH",
+      body: JSON.stringify({ slot: newSlot }),
     });
     await loadChannels();
   }
@@ -1326,6 +1354,12 @@
         const cid = btn.dataset.channelId;
         const currentWeight = parseInt(btn.dataset.weight || "1", 10);
         editChannelWeight(cid, currentWeight).catch((err) => setNotice(err.message));
+        break;
+      }
+      case "edit-slot": {
+        const cid = btn.dataset.channelId;
+        const currentSlot = btn.dataset.slot || "";
+        editChannelSlot(cid, currentSlot).catch((err) => setNotice(err.message));
         break;
       }
       case "toggle-log-detail": {
