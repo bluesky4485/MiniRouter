@@ -534,8 +534,8 @@
       addChannel: "Add Channel",
       edit: "Edit Weight",
       editSlot: "Edit Slot",
-      editSlotPrompt: "Enter new slot (balanced / fast / strong / vision):",
-      invalidSlot: "Invalid slot. Valid options: balanced, fast, strong, vision.",
+      save: "Save",
+      cancel: "Cancel",
       editWeightPrompt: "Enter new weight (positive integer):",
       invalidWeight: "Weight must be a positive integer.",
       thSlot: "Slot",
@@ -682,8 +682,8 @@
       addChannel: "添加渠道",
       edit: "编辑权重",
       editSlot: "编辑槽位",
-      editSlotPrompt: "输入新的槽位（balanced / fast / strong / vision）：",
-      invalidSlot: "槽位无效。有效选项：balanced, fast, strong, vision。",
+      save: "保存",
+      cancel: "取消",
       editWeightPrompt: "输入新的权重（正整数）：",
       invalidWeight: "权重必须是正整数。",
       thSlot: "槽位",
@@ -1193,27 +1193,50 @@
     await loadChannels();
   }
 
-  async function editChannelSlot(channelId, currentSlot) {
-    const slots = ["balanced", "fast", "strong", "vision"];
-    const newSlotRaw = prompt(
-      t("editSlotPrompt"),
-      currentSlot
-    );
-    if (!newSlotRaw) return;
-    const newSlot = newSlotRaw.trim().toLowerCase();
-    if (!slots.includes(newSlot)) {
-      alert(t("invalidSlot"));
-      return;
-    }
-    if (newSlot === currentSlot.toLowerCase()) return;
+  function startSlotEdit(tr, channelId, currentSlot) {
+    const slotCell = tr.querySelector('td:first-child');
+    if (!slotCell) return;
 
-    // Only send the slot field. Safe partial update.
-    // Never includes apiKey or other fields.
-    await api("/admin/channels/" + channelId, {
-      method: "PATCH",
-      body: JSON.stringify({ slot: newSlot }),
+    const originalHTML = slotCell.innerHTML;
+    const slots = ["balanced", "fast", "strong", "vision"];
+
+    let html = `<select style="font-size:12px; padding:2px;">`;
+    slots.forEach(s => {
+      const selected = s === currentSlot ? 'selected' : '';
+      html += `<option value="${s}" ${selected}>${s}</option>`;
     });
-    await loadChannels();
+    html += `</select>`;
+    html += ` <button class="secondary" style="font-size:11px; padding:1px 4px;" data-temp-action="save-slot">${t("save")}</button>`;
+    html += ` <button class="secondary" style="font-size:11px; padding:1px 4px;" data-temp-action="cancel-slot">${t("cancel")}</button>`;
+
+    slotCell.innerHTML = html;
+
+    const selectEl = slotCell.querySelector('select');
+    const saveBtn = slotCell.querySelector('[data-temp-action="save-slot"]');
+    const cancelBtn = slotCell.querySelector('[data-temp-action="cancel-slot"]');
+
+    saveBtn.onclick = async () => {
+      const newSlot = selectEl.value;
+      if (newSlot === currentSlot) {
+        slotCell.innerHTML = originalHTML;
+        return;
+      }
+      try {
+        // Only send the slot. Never send apiKey or other fields.
+        await api("/admin/channels/" + channelId, {
+          method: "PATCH",
+          body: JSON.stringify({ slot: newSlot }),
+        });
+        await loadChannels();
+      } catch (err) {
+        slotCell.innerHTML = originalHTML;
+        setNotice(err.message || String(err));
+      }
+    };
+
+    cancelBtn.onclick = () => {
+      slotCell.innerHTML = originalHTML;
+    };
   }
 
   async function loadLogs() {
@@ -1361,7 +1384,10 @@
       case "edit-slot": {
         const cid = btn.dataset.channelId;
         const currentSlot = btn.dataset.slot || "";
-        editChannelSlot(cid, currentSlot).catch((err) => setNotice(err.message));
+        const tr = btn.closest('tr');
+        if (tr) {
+          startSlotEdit(tr, cid, currentSlot);
+        }
         break;
       }
       case "toggle-log-detail": {
