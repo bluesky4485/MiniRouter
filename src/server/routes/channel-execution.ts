@@ -49,6 +49,7 @@ export async function executeWithChannelFallback<T>(opts: {
   executor: ChannelExecutor<T>;
   now?: Date;
   maxAttempts?: number;
+  protocol?: 'openai-chat' | 'anthropic-messages';
 }): Promise<ChannelExecutionResult<T>> {
   const { slot: slotName, requirements, executor, now } = opts;
   const channels = await listProviderInstances(slotName);
@@ -58,6 +59,7 @@ export async function executeWithChannelFallback<T>(opts: {
 
   let lastUpstream: Response | undefined;
   let lastSlot: ModelSlot | undefined;
+  let lastOptimization: T | undefined;
 
   for (let attempt = 0; attempt < maxAttempts && tried.size < channels.length; attempt++) {
     const selection = selectProviderChannel(channels, {
@@ -66,6 +68,7 @@ export async function executeWithChannelFallback<T>(opts: {
       cursor: channelCursors.get(slotName) ?? 0,
       now,
       excludeIds: [...tried],
+      protocol: opts.protocol,
     });
     if (!selection) break;
 
@@ -86,17 +89,19 @@ export async function executeWithChannelFallback<T>(opts: {
       }
       lastUpstream = result.upstream;
       lastSlot = selectedSlot;
+      lastOptimization = result.optimization;
     } catch {
       if (selectedSlot.providerInstanceId) {
         await recordProviderFailure(selectedSlot.providerInstanceId);
       }
       lastUpstream = undefined;
       lastSlot = selectedSlot;
+      lastOptimization = undefined;
     }
   }
 
   if (lastUpstream && lastSlot) {
-    return { slot: lastSlot, upstream: lastUpstream, optimization: undefined as unknown as T };
+    return { slot: lastSlot, upstream: lastUpstream, optimization: lastOptimization ?? ({} as T) };
   }
   throw new Error(`all provider channels failed for slot: ${slotName}`);
 }
