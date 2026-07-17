@@ -10,7 +10,7 @@ import { getUserUsageStats } from "../../db/queries/usage.js";
 import { createUser, deleteUser, getUserByEmail, getUserById, listUsers, updateUser } from "../../db/queries/users.js";
 import {
   createProviderInstance,
-  disableProviderInstance,
+  deleteProviderInstance,
   listProviderInstances,
   updateProviderInstance,
   type UpsertProviderInstanceInput,
@@ -355,9 +355,9 @@ export async function adminUpdateChannel(c: Context) {
   return c.json(publicChannel(channel));
 }
 
-export async function adminDisableChannel(c: Context) {
+export async function adminDeleteChannel(c: Context) {
   requireAdmin(c);
   const id = c.req.param("id")!;
-  await disableProviderInstance(id);
-  return c.json({ status: "disabled", channel_id: id });
+  await deleteProviderInstance(id);
+  return c.json({ status: "deleted", channel_id: id });
 }

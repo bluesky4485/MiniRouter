@@ -132,6 +132,11 @@ export async function disableProviderInstance(id: string): Promise<void> {
     .where(eq(providerInstances.id, id));
 }
 
+export async function deleteProviderInstance(id: string): Promise<void> {
+  const db = getDb();
+  await db.delete(providerInstances).where(eq(providerInstances.id, id));
+}
+
 export async function recordProviderSuccess(id: string, latencyMs: number): Promise<void> {
   const db = getDb();
   await db

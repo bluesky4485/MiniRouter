@@ -166,6 +166,9 @@
   .login-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
   .tiny-actions { display:flex; gap:6px; flex-wrap:wrap; }
   .tiny-actions button { padding:5px 8px; font-size:11px; }
+  td[data-editable] { cursor: pointer; }
+  td[data-editable]:hover { background: #f0f7f5; }
+  .tiny-btn { font-size: 11px; padding: 1px 5px; margin-left: 2px; cursor: pointer; border:1px solid var(--line); background:#fff; }
   dialog {
     border:1px solid var(--line);
     border-radius:8px;
@@ -182,6 +185,8 @@
     padding:12px;
     white-space:pre-wrap;
     word-break:break-all;
+    user-select: all;
+    cursor: text;
   }
   .details-row td { background:#f8fafc; }
   .route-detail {
@@ -450,6 +455,9 @@
       <pre id="secretValue" class="secret"></pre>
       <button class="copy-btn" data-action="copy-secret" style="position:absolute;top:8px;right:8px" data-i18n="copy">Copy</button>
     </div>
+    <p id="copyHint" class="muted" style="font-size:12px; margin-top:6px; display:none;">
+      当前为 HTTP/IP 访问，浏览器可能无法直接复制。请选中上方密钥后手动按 Ctrl+C / ⌘+C。
+    </p>
   </div>
 </dialog>
 </body>
@@ -536,6 +544,8 @@
       editSlot: "Edit Slot",
       save: "Save",
       cancel: "Cancel",
+      dblclickToEdit: "Double-click to edit",
+      copied: "Copied!",
       editWeightPrompt: "Enter new weight (positive integer):",
       invalidWeight: "Weight must be a positive integer.",
       thSlot: "Slot",
@@ -587,6 +597,7 @@
       enable: "Enable",
       disable: "Disable",
       delete: "Delete",
+      deleteChannel: "Delete",
       keys: "Keys",
       none: "none",
       details: "Route",
@@ -604,6 +615,7 @@
       loginFailed: (m) => `Login failed: ${m}`,
       selectUserFirst: "Select a user first.",
       confirmDeleteUser: (e) => `Delete user ${e}? This cannot be undone.`,
+      confirmDeleteChannel: (p, m) => `Delete channel ${p} / ${m}? This cannot be undone.`,
       tokenRejected: "Admin token rejected or API unavailable.",
       langLabel: "Language",
     },
@@ -684,6 +696,8 @@
       editSlot: "编辑槽位",
       save: "保存",
       cancel: "取消",
+      dblclickToEdit: "双击编辑",
+      copied: "已复制！",
       editWeightPrompt: "输入新的权重（正整数）：",
       invalidWeight: "权重必须是正整数。",
       thSlot: "槽位",
@@ -735,6 +749,7 @@
       enable: "启用",
       disable: "禁用",
       delete: "删除",
+      deleteChannel: "删除",
       keys: "密钥",
       none: "无",
       details: "路由",
@@ -752,6 +767,7 @@
       loginFailed: (m) => `登录失败：${m}`,
       selectUserFirst: "请先选择一个用户。",
       confirmDeleteUser: (e) => `确定删除用户 ${e} 吗？此操作不可撤销。`,
+      confirmDeleteChannel: (p, m) => `确定删除渠道 ${p} / ${m} 吗？此操作不可撤销。`,
       tokenRejected: "管理员令牌被拒绝或接口不可用。",
       langLabel: "语言",
     },
@@ -842,6 +858,18 @@
     $("keyModalEmail").textContent = email || "admin@minirouter.local";
     $("keyModalName").textContent = name || "Admin";
     $("keyModal").classList.remove("hidden");
+
+    // Auto-select for easy manual copy (especially on HTTP/IP)
+    setTimeout(() => {
+      const el = $("keyModalValue");
+      if (el) {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }, 50);
   }
 
   function loading(on) {
@@ -902,19 +930,50 @@
     return "-";
   }
 
-  function copyToClipboard(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).catch(() => {});
-    } else {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+  async function copyToClipboard(text) {
+    // Modern Clipboard API — only works in secure contexts (HTTPS, localhost, 127.0.0.1)
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        // continue to fallback
+      }
     }
+
+    // Robust legacy fallback using execCommand
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "0";
+    ta.style.width = "1px";
+    ta.style.height = "1px";
+    ta.style.padding = "0";
+    ta.style.border = "none";
+    ta.style.outline = "none";
+    ta.style.boxShadow = "none";
+    ta.style.background = "transparent";
+    document.body.appendChild(ta);
+
+    // Some browsers need the element to be focused before select
+    ta.focus();
+    ta.select();
+
+    let success = false;
+    try {
+      success = document.execCommand("copy");
+    } catch (e) {
+      success = false;
+    }
+
+    document.body.removeChild(ta);
+
+    if (!success) {
+      throw new Error("Clipboard API not available (HTTP + non-localhost). Please select the key and press Ctrl+C / Cmd+C manually.");
+    }
+    return true;
   }
 
   // ── API ────────────────────────────────────────────────────────
@@ -1092,6 +1151,25 @@
     });
     $("secretValue").textContent = payload.key;
     $("secretDialog").showModal();
+
+    // Show helpful hint for HTTP/IP users
+    const hint = $("copyHint");
+    if (hint) {
+      hint.style.display = window.isSecureContext ? "none" : "block";
+    }
+
+    // Auto-select the key text so user can easily Ctrl+C even on plain HTTP
+    setTimeout(() => {
+      const el = $("secretValue");
+      if (el) {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }, 50);
+
     $("keyName").value = "";
     $("keyDailyLimit").value = "";
     await loadKeys();
@@ -1119,17 +1197,16 @@
           const actionLabel = c.isHealthy ? t("disable") : t("enable");
           const actionVal = c.isHealthy ? "false" : "true";
           return `<tr>
-            <td>${slot}</td>
+            <td data-editable="slot" data-channel-id="${escHtml(c.id)}" data-value="${escHtml(c.slot)}" title="${t('dblclickToEdit') || 'Double-click to edit'}">${slot}</td>
             <td>${provider}</td>
             <td>${model}</td>
             <td>${pricing}</td>
             <td>${kind}</td>
-            <td>${weight}</td>
+            <td data-editable="weight" data-channel-id="${escHtml(c.id)}" data-value="${weight}" title="${t('dblclickToEdit') || 'Double-click to edit'}">${weight}</td>
             <td><span class="pill ${healthCls}">${healthText}</span></td>
             <td class="tiny-actions">
-              <button class="secondary" data-action="edit-slot" data-channel-id="${escHtml(c.id)}" data-slot="${escHtml(c.slot)}">${t("editSlot")}</button>
-              <button class="secondary" data-action="edit-channel" data-channel-id="${escHtml(c.id)}" data-weight="${weight}">${t("edit")}</button>
               <button class="secondary" data-action="toggle-channel" data-channel-id="${escHtml(c.id)}" data-healthy="${actionVal}">${actionLabel}</button>
+              <button class="danger" data-action="delete-channel" data-channel-id="${escHtml(c.id)}" data-channel-provider="${escHtml(c.provider)}" data-channel-model="${escHtml(c.model)}">${t("deleteChannel")}</button>
             </td>
           </tr>`;
         }).join("")
@@ -1174,69 +1251,116 @@
     await loadChannels();
   }
 
-  async function editChannelWeight(channelId, currentWeight) {
-    const newWeightStr = prompt(t("editWeightPrompt"), String(currentWeight));
-    if (!newWeightStr) return;
-
-    const newWeight = parseInt(newWeightStr, 10);
-    if (!newWeight || newWeight < 1) {
-      alert(t("invalidWeight"));
+  async function deleteChannel(channelId, provider, model) {
+    if (!confirm(t("confirmDeleteChannel", provider, model))) {
       return;
     }
-
-    // IMPORTANT: Only send the weight field.
-    // This ensures apiKey and other fields are never accidentally overwritten.
-    await api("/admin/channels/" + channelId, {
-      method: "PATCH",
-      body: JSON.stringify({ weight: newWeight }),
-    });
+    await api("/admin/channels/" + channelId, { method: "DELETE" });
     await loadChannels();
   }
 
-  function startSlotEdit(tr, channelId, currentSlot) {
-    const slotCell = tr.querySelector('td:first-child');
-    if (!slotCell) return;
+  function startInlineWeightEdit(td, channelId, currentValue) {
+    const originalHTML = td.innerHTML;
+    td.innerHTML = `
+      <input type="number" value="${currentValue}" min="1" step="1" style="width:55px; font-size:12px;">
+      <button class="tiny-btn" data-save>✓</button>
+      <button class="tiny-btn" data-cancel>✕</button>
+    `;
+    const input = td.querySelector('input');
+    const saveBtn = td.querySelector('[data-save]');
+    const cancelBtn = td.querySelector('[data-cancel]');
 
-    const originalHTML = slotCell.innerHTML;
-    const slots = ["balanced", "fast", "strong", "vision"];
+    input.focus();
+    input.select();
 
-    let html = `<select style="font-size:12px; padding:2px;">`;
-    slots.forEach(s => {
-      const selected = s === currentSlot ? 'selected' : '';
-      html += `<option value="${s}" ${selected}>${s}</option>`;
-    });
-    html += `</select>`;
-    html += ` <button class="secondary" style="font-size:11px; padding:1px 4px;" data-temp-action="save-slot">${t("save")}</button>`;
-    html += ` <button class="secondary" style="font-size:11px; padding:1px 4px;" data-temp-action="cancel-slot">${t("cancel")}</button>`;
-
-    slotCell.innerHTML = html;
-
-    const selectEl = slotCell.querySelector('select');
-    const saveBtn = slotCell.querySelector('[data-temp-action="save-slot"]');
-    const cancelBtn = slotCell.querySelector('[data-temp-action="cancel-slot"]');
-
-    saveBtn.onclick = async () => {
-      const newSlot = selectEl.value;
-      if (newSlot === currentSlot) {
-        slotCell.innerHTML = originalHTML;
+    const save = async () => {
+      const val = parseInt(input.value, 10);
+      if (!val || val < 1) {
+        alert(t('invalidWeight'));
+        td.innerHTML = originalHTML;
         return;
       }
       try {
-        // Only send the slot. Never send apiKey or other fields.
         await api("/admin/channels/" + channelId, {
           method: "PATCH",
-          body: JSON.stringify({ slot: newSlot }),
+          body: JSON.stringify({ weight: val })
         });
         await loadChannels();
       } catch (err) {
-        slotCell.innerHTML = originalHTML;
+        td.innerHTML = originalHTML;
         setNotice(err.message || String(err));
       }
     };
 
-    cancelBtn.onclick = () => {
-      slotCell.innerHTML = originalHTML;
+    const cancel = () => { td.innerHTML = originalHTML; };
+
+    saveBtn.onclick = save;
+    cancelBtn.onclick = cancel;
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') save();
+      if (e.key === 'Escape') cancel();
     };
+  }
+
+  function startInlineSlotEdit(td, channelId, currentValue) {
+    const originalHTML = td.innerHTML;
+    const slots = ["balanced", "fast", "strong", "vision"];
+    let html = `<select style="font-size:12px; padding:1px;">`;
+    slots.forEach(s => {
+      const sel = s === currentValue ? 'selected' : '';
+      html += `<option value="${s}" ${sel}>${s}</option>`;
+    });
+    html += `</select> <button class="tiny-btn" data-save>✓</button> <button class="tiny-btn" data-cancel>✕</button>`;
+
+    td.innerHTML = html;
+
+    const selectEl = td.querySelector('select');
+    const saveBtn = td.querySelector('[data-save]');
+    const cancelBtn = td.querySelector('[data-cancel]');
+
+    const save = async () => {
+      const newSlot = selectEl.value;
+      if (newSlot === currentValue) {
+        td.innerHTML = originalHTML;
+        return;
+      }
+      try {
+        await api("/admin/channels/" + channelId, {
+          method: "PATCH",
+          body: JSON.stringify({ slot: newSlot })
+        });
+        await loadChannels();
+      } catch (err) {
+        td.innerHTML = originalHTML;
+        setNotice(err.message || String(err));
+      }
+    };
+
+    const cancel = () => { td.innerHTML = originalHTML; };
+
+    saveBtn.onclick = save;
+    cancelBtn.onclick = cancel;
+    selectEl.onkeydown = (e) => {
+      if (e.key === 'Enter') save();
+      if (e.key === 'Escape') cancel();
+    };
+  }
+
+  function attachChannelInlineEditors() {
+    const tbody = $("channels");
+    // Use delegation to handle dblclick on editable cells
+    tbody.addEventListener('dblclick', (e) => {
+      const td = e.target.closest('td[data-editable]');
+      if (!td) return;
+      const type = td.dataset.editable;
+      const id = td.dataset.channelId;
+      const val = td.dataset.value;
+      if (type === 'weight') {
+        startInlineWeightEdit(td, id, val);
+      } else if (type === 'slot') {
+        startInlineSlotEdit(td, id, val);
+      }
+    });
   }
 
   async function loadLogs() {
@@ -1313,17 +1437,38 @@
         case "copy-key":
           (async () => {
             const key = $("keyModalValue").textContent;
+            const originalText = btn.textContent;
+            const keyEl = $("keyModalValue");
+            const isSecure = !!window.isSecureContext;
+
             try {
-              await navigator.clipboard.writeText(key);
-              btn.textContent = "✅ Copied!";
-              setTimeout(() => { btn.textContent = t("keyCopy"); }, 2000);
-            } catch {
-              const ta = document.createElement("textarea");
-              ta.value = key; ta.style.position = "fixed"; ta.style.opacity = "0";
-              document.body.appendChild(ta); ta.select();
-              document.execCommand("copy"); document.body.removeChild(ta);
-              btn.textContent = "✅ Copied!";
-              setTimeout(() => { btn.textContent = t("keyCopy"); }, 2000);
+              await copyToClipboard(key);
+
+              if (keyEl) {
+                const range = document.createRange();
+                range.selectNodeContents(keyEl);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+
+              if (isSecure) {
+                btn.textContent = "✅ " + t("copied");
+              } else {
+                btn.textContent = "⚠️ 已选中，按 Ctrl+C / ⌘+C 复制";
+              }
+              setTimeout(() => { btn.textContent = originalText; }, 2500);
+            } catch (err) {
+              if (keyEl) {
+                const range = document.createRange();
+                range.selectNodeContents(keyEl);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+              btn.textContent = "⚠️ 请按 Ctrl+C / ⌘+C 复制";
+              setTimeout(() => { btn.textContent = originalText; }, 3000);
+              console.warn("Copy failed (likely non-HTTPS):", err);
             }
           })();
           break;
@@ -1375,19 +1520,11 @@
         toggleChannel(cid, healthy).catch((err) => setNotice(err.message));
         break;
       }
-      case "edit-channel": {
+      case "delete-channel": {
         const cid = btn.dataset.channelId;
-        const currentWeight = parseInt(btn.dataset.weight || "1", 10);
-        editChannelWeight(cid, currentWeight).catch((err) => setNotice(err.message));
-        break;
-      }
-      case "edit-slot": {
-        const cid = btn.dataset.channelId;
-        const currentSlot = btn.dataset.slot || "";
-        const tr = btn.closest('tr');
-        if (tr) {
-          startSlotEdit(tr, cid, currentSlot);
-        }
+        const provider = btn.dataset.channelProvider || "";
+        const model = btn.dataset.channelModel || "";
+        deleteChannel(cid, provider, model).catch((err) => setNotice(err.message));
         break;
       }
       case "toggle-log-detail": {
@@ -1408,9 +1545,42 @@
         break;
         case "copy-secret": {
           const text = $("secretValue").textContent;
-          copyToClipboard(text);
-          btn.textContent = t("copy");
-          setTimeout(() => { btn.textContent = t("copy"); }, 2000);
+          const originalText = btn.textContent;
+          const secretEl = $("secretValue");
+          const isSecure = !!window.isSecureContext;
+
+          (async () => {
+            try {
+              await copyToClipboard(text);
+
+              // Always select the visible text (very useful on plain HTTP/IP)
+              if (secretEl) {
+                const range = document.createRange();
+                range.selectNodeContents(secretEl);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+
+              if (isSecure) {
+                btn.textContent = "✅ " + t("copied");
+              } else {
+                btn.textContent = "⚠️ 已选中，按 Ctrl+C / ⌘+C 复制";
+              }
+              setTimeout(() => { btn.textContent = originalText; }, 2500);
+            } catch (err) {
+              if (secretEl) {
+                const range = document.createRange();
+                range.selectNodeContents(secretEl);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+              btn.textContent = "⚠️ 请按 Ctrl+C / ⌘+C 复制";
+              setTimeout(() => { btn.textContent = originalText; }, 3000);
+              console.warn("Copy failed (likely non-HTTPS):", err);
+            }
+          })();
           break;
         }
     }
@@ -1429,6 +1599,9 @@
       }
     }
   });
+
+  // Attach dblclick editors for channels (delegation, survives re-renders)
+  attachChannelInlineEditors();
 
   // ── Refresh ───────────────────────────────────────────────────
   async function refreshAll() {

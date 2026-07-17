@@ -41,7 +41,7 @@ import {
   adminListChannels,
   adminCreateChannel,
   adminUpdateChannel,
-  adminDisableChannel,
+  adminDeleteChannel,
 } from "./routes/admin.js";
 import { getUsageLogs, getUserUsageSummary } from "./routes/usage-logs.js";
 import { serveAdminDashboard } from "./routes/admin-dashboard.js";
@@ -101,7 +101,7 @@ export function createApp(): Hono {
   api.get("/admin/channels", adminListChannels);
   api.post("/admin/channels", adminCreateChannel);
   api.patch("/admin/channels/:id", adminUpdateChannel);
-  api.delete("/admin/channels/:id", adminDisableChannel);
+  api.delete("/admin/channels/:id", adminDeleteChannel);
   api.put("/api/models/:id", updateModelScore);
 
   // Usage log query endpoints
