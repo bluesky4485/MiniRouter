@@ -532,6 +532,9 @@
       supportsTools: "supports tools",
       supportsVision: "supports vision",
       addChannel: "Add Channel",
+      edit: "Edit",
+      editWeightPrompt: "Enter new weight (positive integer):",
+      invalidWeight: "Weight must be a positive integer.",
       thSlot: "Slot",
       thProvider: "Provider",
       thModel: "Model",
@@ -674,6 +677,9 @@
       supportsTools: "支持工具调用",
       supportsVision: "支持视觉",
       addChannel: "添加渠道",
+      edit: "编辑",
+      editWeightPrompt: "输入新的权重（正整数）：",
+      invalidWeight: "权重必须是正整数。",
       thSlot: "槽位",
       thProvider: "渠道",
       thModel: "模型",
@@ -1115,6 +1121,7 @@
             <td>${weight}</td>
             <td><span class="pill ${healthCls}">${healthText}</span></td>
             <td class="tiny-actions">
+              <button class="secondary" data-action="edit-channel" data-channel-id="${escHtml(c.id)}" data-weight="${weight}">${t("edit")}</button>
               <button class="secondary" data-action="toggle-channel" data-channel-id="${escHtml(c.id)}" data-healthy="${actionVal}">${actionLabel}</button>
             </td>
           </tr>`;
@@ -1151,13 +1158,31 @@
   }
 
   async function toggleChannel(channelId, healthy) {
-    if (healthy) {
-      // Enable: PATCH the channel
-      await api("/admin/channels/" + channelId, { method: "PATCH", body: JSON.stringify({ isHealthy: true }) });
-    } else {
-      // Disable: DELETE
-      await api("/admin/channels/" + channelId, { method: "DELETE" });
+    // Use PATCH for both enable and disable for consistency.
+    // Only sends isHealthy, so other fields (including apiKey) are untouched.
+    await api("/admin/channels/" + channelId, {
+      method: "PATCH",
+      body: JSON.stringify({ isHealthy: !!healthy }),
+    });
+    await loadChannels();
+  }
+
+  async function editChannelWeight(channelId, currentWeight) {
+    const newWeightStr = prompt(t("editWeightPrompt"), String(currentWeight));
+    if (!newWeightStr) return;
+
+    const newWeight = parseInt(newWeightStr, 10);
+    if (!newWeight || newWeight < 1) {
+      alert(t("invalidWeight"));
+      return;
     }
+
+    // IMPORTANT: Only send the weight field.
+    // This ensures apiKey and other fields are never accidentally overwritten.
+    await api("/admin/channels/" + channelId, {
+      method: "PATCH",
+      body: JSON.stringify({ weight: newWeight }),
+    });
     await loadChannels();
   }
 
@@ -1295,6 +1320,12 @@
         const cid = btn.dataset.channelId;
         const healthy = btn.dataset.healthy === "true";
         toggleChannel(cid, healthy).catch((err) => setNotice(err.message));
+        break;
+      }
+      case "edit-channel": {
+        const cid = btn.dataset.channelId;
+        const currentWeight = parseInt(btn.dataset.weight || "1", 10);
+        editChannelWeight(cid, currentWeight).catch((err) => setNotice(err.message));
         break;
       }
       case "toggle-log-detail": {

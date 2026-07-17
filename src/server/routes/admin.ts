@@ -316,7 +316,35 @@ export async function adminCreateChannel(c: Context) {
 
 export async function adminUpdateChannel(c: Context) {
   requireAdmin(c);
-  const channel = await updateProviderInstance(c.req.param("id")!, await c.req.json());
+  const body = await c.req.json();
+
+  // Only allow safe fields to be updated via admin UI.
+  // Never allow changing identity fields (slot, model, url, apiKey, etc.) here.
+  const safeUpdate: Record<string, any> = {};
+  if (typeof body.weight === 'number' && body.weight > 0) {
+    safeUpdate.weight = Math.floor(body.weight);
+  }
+  if (body.notes !== undefined) {
+    safeUpdate.notes = body.notes;
+  }
+  if (typeof body.isHealthy === 'boolean') {
+    safeUpdate.isHealthy = body.isHealthy;
+  }
+  if (typeof body.supportsTools === 'boolean') {
+    safeUpdate.supportsTools = body.supportsTools;
+  }
+  if (typeof body.supportsVision === 'boolean') {
+    safeUpdate.supportsVision = body.supportsVision;
+  }
+  if (typeof body.contextWindowTokens === 'number') {
+    safeUpdate.contextWindowTokens = body.contextWindowTokens;
+  }
+
+  if (Object.keys(safeUpdate).length === 0) {
+    return c.json({ error: { message: "No valid fields to update" } }, 400);
+  }
+
+  const channel = await updateProviderInstance(c.req.param("id")!, safeUpdate);
   if (!channel) return c.json({ error: { message: "Channel not found" } }, 404);
   return c.json(publicChannel(channel));
 }
