@@ -168,7 +168,21 @@
   .tiny-actions button { padding:5px 8px; font-size:11px; }
   td[data-editable] { cursor: pointer; }
   td[data-editable]:hover { background: #f0f7f5; }
-  .tiny-btn { font-size: 11px; padding: 1px 5px; margin-left: 2px; cursor: pointer; border:1px solid var(--line); background:#fff; }
+  .tiny-btn { 
+    font-size: 11px; 
+    padding: 2px 6px; 
+    margin-left: 3px; 
+    cursor: pointer; 
+    border:1px solid var(--line); 
+    background:#fff; 
+    border-radius: 3px;
+    line-height: 1;
+    min-width: 32px;
+  }
+  .tiny-btn.save { color: #166534; border-color: #86efac; font-weight: 500; }
+  .tiny-btn.save:hover { background: #f0fdf4; }
+  .tiny-btn.cancel { color: #991b1b; border-color: #fecaca; font-weight: 500; }
+  .tiny-btn.cancel:hover { background: #fef2f2; }
   dialog {
     border:1px solid var(--line);
     border-radius:8px;
@@ -615,7 +629,7 @@
       loginFailed: (m) => `Login failed: ${m}`,
       selectUserFirst: "Select a user first.",
       confirmDeleteUser: (e) => `Delete user ${e}? This cannot be undone.`,
-      confirmDeleteChannel: (p, m) => `Delete channel ${p} / ${m}? This cannot be undone.`,
+      confirmDeleteChannel: (p, m) => `Delete channel "${p}/${m}"?\n\nWhat this means:\n• The channel will be permanently removed from the database\n• It will stop being used for routing any requests\n• Historical usage logs will remain (view only)\n• This cannot be undone`,
       tokenRejected: "Admin token rejected or API unavailable.",
       langLabel: "Language",
     },
@@ -767,7 +781,7 @@
       loginFailed: (m) => `登录失败：${m}`,
       selectUserFirst: "请先选择一个用户。",
       confirmDeleteUser: (e) => `确定删除用户 ${e} 吗？此操作不可撤销。`,
-      confirmDeleteChannel: (p, m) => `确定删除渠道 ${p} / ${m} 吗？此操作不可撤销。`,
+      confirmDeleteChannel: (p, m) => `确定要删除渠道 "${p}/${m}" 吗？\n\n删除操作说明：\n• 渠道会从数据库中彻底删除\n• 该渠道将停止用于所有请求的路由\n• 历史用量记录会保留（仅查看）\n• 删除后无法恢复`,
       tokenRejected: "管理员令牌被拒绝或接口不可用。",
       langLabel: "语言",
     },
@@ -1206,7 +1220,7 @@
             <td><span class="pill ${healthCls}">${healthText}</span></td>
             <td class="tiny-actions">
               <button class="secondary" data-action="toggle-channel" data-channel-id="${escHtml(c.id)}" data-healthy="${actionVal}">${actionLabel}</button>
-              <button class="danger" data-action="delete-channel" data-channel-id="${escHtml(c.id)}" data-channel-provider="${escHtml(c.provider)}" data-channel-model="${escHtml(c.model)}">${t("deleteChannel")}</button>
+              <button class="danger" data-action="delete-channel" data-channel-id="${escHtml(c.id)}" data-channel-provider="${escHtml(c.provider)}" data-channel-model="${escHtml(c.model)}" title="${t('confirmDeleteChannel', c.provider, c.model)}">${t("deleteChannel")}</button>
             </td>
           </tr>`;
         }).join("")
@@ -1263,8 +1277,8 @@
     const originalHTML = td.innerHTML;
     td.innerHTML = `
       <input type="number" value="${currentValue}" min="1" step="1" style="width:55px; font-size:12px;">
-      <button class="tiny-btn" data-save>✓</button>
-      <button class="tiny-btn" data-cancel>✕</button>
+      <button class="tiny-btn save" data-save title="${t("save")}">${t("save")}</button>
+      <button class="tiny-btn cancel" data-cancel title="${t("cancel")}">${t("cancel")}</button>
     `;
     const input = td.querySelector('input');
     const saveBtn = td.querySelector('[data-save]');
@@ -1310,7 +1324,7 @@
       const sel = s === currentValue ? 'selected' : '';
       html += `<option value="${s}" ${sel}>${s}</option>`;
     });
-    html += `</select> <button class="tiny-btn" data-save>✓</button> <button class="tiny-btn" data-cancel>✕</button>`;
+    html += `</select> <button class="tiny-btn save" data-save title="${t("save")}">${t("save")}</button> <button class="tiny-btn cancel" data-cancel title="${t("cancel")}">${t("cancel")}</button>`;
 
     td.innerHTML = html;
 
