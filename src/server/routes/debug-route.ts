@@ -9,6 +9,7 @@ import { normalizeOpenAIChatRequest } from "../../protocols/openai-chat.js";
 import { buildRouteReceipt, type CatalogModel, type RouteProfile } from "../../routing/debug/route.js";
 import { extractRoutingFeatures } from "../../routing/features/extractor.js";
 import { selectConfiguredSlotForChat } from "./chat.js";
+import { loadModelSlotsFromEnv } from "../../providers/env.js";
 
 type ModelScoreRow = typeof modelScores.$inferSelect;
 type EnvLike = Record<string, string | undefined>;
@@ -96,18 +97,49 @@ export async function debugRoute(c: Context) {
     );
   }
 
-  if (source === "env-slot") {
+  const envSlots = loadModelSlotsFromEnv();
+  const useEnvSlot = source === "env-slot" || (source == null && Object.keys(envSlots).length > 0);
+
+  if (useEnvSlot) {
     return c.json(buildEnvSlotDebugReceipt(body));
   }
 
   const db = getDb();
   const rows = await db.select().from(modelScores).where(eq(modelScores.isActive, 1));
   const catalog = rows.map(mapModelScoreToCatalogModel);
-  const request = normalizeOpenAIChatRequest(body);
-  const receipt = buildRouteReceipt(request, catalog, { profile });
 
-  return c.json({
-    ...receipt,
-    modelCount: catalog.length,
-  });
+  if (catalog.length === 0) {
+    return c.json(
+      {
+        error: {
+          message:
+            "No models in catalog. Run `npm run seed:models` to populate model scores for debug/catalog routing.",
+          type: "no_catalog_models",
+        },
+      },
+      400,
+    );
+  }
+
+  const request = normalizeOpenAIChatRequest(body);
+  try {
+    const receipt = buildRouteReceipt(request, catalog, { profile });
+    return c.json({
+      ...receipt,
+      modelCount: catalog.length,
+    });
+  } catch (err: any) {
+    if (err.message === "No eligible model for request requirements") {
+      return c.json(
+        {
+          error: {
+            message: err.message,
+            type: "no_eligible_model",
+          },
+        },
+        400,
+      );
+    }
+    throw err;
+  }
 }
