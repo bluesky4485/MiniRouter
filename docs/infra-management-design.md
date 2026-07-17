@@ -96,7 +96,13 @@ A provider channel is one concrete upstream endpoint:
 ```text
 slot=balanced
 provider=deepseek-primary
-provider_kind=openai-compatible
+provider_kind=openai-compatible | anthropic | auto
+
+**Protocol compatibility rule:**
+- A channel/slot with `provider_kind=openai-compatible` will **never** be selected for Anthropic Messages requests.
+- A channel/slot with `provider_kind=anthropic` will **never** be selected for OpenAI Chat Completions requests.
+- `auto` (default) adapts to the incoming protocol (OpenAI requests → /chat/completions, Anthropic → /messages).
+- Selection happens in `pickSlotForFeatures` (env slots) and `selectProviderChannel` (DB channels), and is enforced before calling the executor.
 base_url=https://api.example.com/v1
 api_key=...
 model=deepseek-v4-flash

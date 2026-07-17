@@ -598,13 +598,21 @@ export OPENAI_MODEL="minirouter/auto"
 
 | 变量                                 | 说明                                     |
 | ------------------------------------ | ---------------------------------------- |
-| `MINIROUTER_{SLOT}_PROVIDER`         | `openai-compatible`、`anthropic` 或留空自动检测 |
-| `MINIROUTER_{SLOT}_BASE_URL`         | 上游 API 端点                             |
+| `MINIROUTER_{SLOT}_PROVIDER`         | `openai-compatible`、`anthropic` 或留空（auto） |
+| `MINIROUTER_{SLOT}_BASE_URL`         | 上游 API 端点（需按提供商要求包含 /v1）   |
 | `MINIROUTER_{SLOT}_API_KEY`          | 提供商认证密钥                            |
 | `MINIROUTER_{SLOT}_MODEL`            | 上游期望的模型名称                        |
 | `MINIROUTER_{SLOT}_SUPPORTS_TOOLS`   | `true` / `false`                          |
 | `MINIROUTER_{SLOT}_SUPPORTS_VISION`  | `true` / `false`                          |
 | `MINIROUTER_{SLOT}_CONTEXT_WINDOW`   | 最大上下文窗口（token）                   |
+
+**提供商协议兼容性（重要）：**
+
+- `openai-compatible`：仅接受 OpenAI Chat Completions 请求（`/v1/chat/completions`）。
+- `anthropic`：仅接受 Anthropic Messages 请求（`/v1/messages`）。
+- `auto`（默认）：根据传入请求的协议自动适配。OpenAI 风格请求发到 `/chat/completions`，Anthropic 风格请求发到 `/messages`。
+
+**请勿混用协议**。将 Anthropic Messages 请求路由到 `openai-compatible` 渠道（或反之）会导致协议不匹配错误（400）。路由器现在会在选槽位/渠道时强制检查兼容性。当使用管理后台添加的渠道时，同一槽位下不同 `provider_kind` 的渠道只会参与匹配的协议选择。
 
 ### 路由调参（可选，内置合理默认值）
 

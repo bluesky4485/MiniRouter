@@ -29,6 +29,8 @@ function readSlot(env: EnvLike, slot: ModelSlotName): ModelSlot | undefined {
   return {
     slot,
     provider: readProvider(env[`${prefix}_PROVIDER`]),
+    // provider="auto" means "adapt to the incoming request protocol".
+    // The actual filtering happens in pickSlotForFeatures using the `protocol` argument.
     baseUrl,
     apiKey,
     model,
@@ -82,6 +84,7 @@ export function pickSlotForFeatures(
       toolCalling: boolean;
       agentic: boolean;
     };
+    protocol?: 'openai-chat' | 'anthropic-messages';
   },
 ): ModelSlot {
   // Vision is a capability requirement — always the vision slot first.
@@ -103,6 +106,11 @@ export function pickSlotForFeatures(
     const candidate = slots[slot];
     if (!candidate) continue;
     if (input.requirements.toolCalling && !candidate.supportsTools) continue;
+    if (input.protocol === 'openai-chat' && candidate.provider === 'anthropic') continue;
+    if (input.protocol === 'anthropic-messages' && candidate.provider === 'openai-compatible') continue;
+    // "auto" is compatible with the incoming protocol.
+    // This fix ensures Anthropic Messages requests never land on openai-compatible
+    // slots (and the other way around).
     return candidate;
   }
 

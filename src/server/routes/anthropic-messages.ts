@@ -127,6 +127,7 @@ export function selectConfiguredSlotForAnthropicMessages(
         toolCalling: features.requirements.toolCalling,
         agentic: features.requirements.agentic,
       },
+      protocol: 'anthropic-messages',
     }),
     debug: decision.debug ?? null,
     features,
@@ -176,6 +177,23 @@ async function executeConfiguredAnthropicBody(
   body: Record<string, unknown>,
   slot: ModelSlot,
 ): Promise<{ upstream: Response; optimization: OptimizationLog }> {
+  if (slot.provider === "openai-compatible") {
+    // Prevents Anthropic protocol requests from being sent to OpenAI-compatible
+    // providers/channels (the root cause of many "request error" symptoms).
+    return {
+      upstream: Response.json(
+        {
+          error: {
+            message:
+              "This slot is configured for OpenAI-compatible. Use POST /v1/chat/completions instead of /v1/messages.",
+            type: "protocol_mismatch",
+          },
+        },
+        { status: 400 },
+      ),
+      optimization: {},
+    };
+  }
 
   const optimized = await optimizeWithHeadroom({
     protocol: "anthropic-messages",
@@ -211,13 +229,14 @@ async function rejectIfSpendLimitExceeded(c: Context, auth: AuthResult): Promise
   );
 }
 
-function usageOptimizationFields(optimization: OptimizationLog) {
+function usageOptimizationFields(optimization: OptimizationLog | undefined | null) {
+  const o = optimization || {};
   return {
-    optimizationReason: optimization.reason,
-    compressionApplied: optimization.compression !== undefined,
-    compressionOriginalChars: optimization.compression?.originalChars,
-    compressionCompressedChars: optimization.compression?.compressedChars,
-    compressionBlocks: optimization.compression?.blocks,
+    optimizationReason: o.reason,
+    compressionApplied: o.compression !== undefined,
+    compressionOriginalChars: o.compression?.originalChars,
+    compressionCompressedChars: o.compression?.compressedChars,
+    compressionBlocks: o.compression?.blocks,
   };
 }
 
@@ -250,6 +269,7 @@ export async function anthropicMessages(c: Context) {
         vision: configured.features.requirements.vision,
       },
       executor: (slot) => executeConfiguredAnthropicBody(body, slot),
+      protocol: 'anthropic-messages',
     });
     upstream = result.upstream;
     optimization = result.optimization;

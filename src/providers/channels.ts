@@ -5,6 +5,8 @@ export type ProviderChannel = {
   slot: ModelSlotName;
   provider: string;
   providerKind: ProviderKind;
+  // "auto" adapts to request protocol.
+  // Filtering by protocol is done in selectProviderChannel.
   baseUrl: string;
   apiKey: string;
   model: string;
@@ -28,6 +30,8 @@ export type ChannelSelectionInput = {
   /** Channel ids already attempted in the current request — excluded so a
    *  fallback loop tries a *different* channel instead of retrying the same. */
   excludeIds?: string[];
+  /** Protocol of the incoming request, to avoid routing e.g. Anthropic to OpenAI-compatible channels */
+  protocol?: 'openai-chat' | 'anthropic-messages';
 };
 
 export type ChannelSelection = {
@@ -57,6 +61,11 @@ export function selectProviderChannel(
     if (input.requirements.toolCalling && !channel.supportsTools) return false;
     if (input.requirements.vision && !channel.supportsVision) return false;
     if (input.excludeIds?.includes(channel.id)) return false;
+    if (input.protocol === 'openai-chat' && channel.providerKind === 'anthropic') return false;
+    if (input.protocol === 'anthropic-messages' && channel.providerKind === 'openai-compatible') return false;
+    // "auto" is compatible with both. This prevents Anthropic requests from being
+    // routed to openai-compatible channels (and vice versa), which was a common
+    // source of "request error" when using mixed channels in the same slot.
     return true;
   });
 

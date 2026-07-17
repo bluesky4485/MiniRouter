@@ -414,7 +414,11 @@
       <div class="panel-body">
         <div class="form-grid">
           <select id="slot"><option data-i18n="slotBalanced">balanced</option><option data-i18n="slotFast">fast</option><option data-i18n="slotStrong">strong</option><option data-i18n="slotVision">vision</option></select>
-          <select id="providerKind"><option data-i18n="kindOpenai">openai-compatible</option><option data-i18n="kindAnthropic">anthropic</option><option data-i18n="kindAuto">auto</option></select>
+          <select id="providerKind" title="openai-compatible: only for /chat/completions; anthropic: only for /messages; auto: adapts to request protocol">
+            <option data-i18n="kindOpenai">openai-compatible</option>
+            <option data-i18n="kindAnthropic">anthropic</option>
+            <option data-i18n="kindAuto">auto</option>
+          </select>
           <input id="provider" type="text" data-i18n-ph="phProvider">
           <input id="modelId" type="text" data-i18n-ph="phModelId">
           <input id="pricingModelId" type="text" data-i18n-ph="phPricingModel">
@@ -541,9 +545,9 @@
       slotFast: "fast",
       slotStrong: "strong",
       slotVision: "vision",
-      kindOpenai: "openai-compatible",
-      kindAnthropic: "anthropic",
-      kindAuto: "auto",
+      kindOpenai: "openai-compatible（仅 /v1/chat/completions）",
+      kindAnthropic: "anthropic（仅 /v1/messages）",
+      kindAuto: "auto（根据请求协议自适应）",
       phProvider: "provider label",
       phModelId: "upstream model id",
       phPricingModel: "pricing model id (optional)",
@@ -693,9 +697,9 @@
       slotFast: "fast",
       slotStrong: "strong",
       slotVision: "vision",
-      kindOpenai: "openai-compatible",
-      kindAnthropic: "anthropic",
-      kindAuto: "auto",
+      kindOpenai: "openai-compatible（仅 /v1/chat/completions）",
+      kindAnthropic: "anthropic（仅 /v1/messages）",
+      kindAuto: "auto（根据请求协议自适应）",
       phProvider: "渠道名称",
       phModelId: "上游模型 ID",
       phPricingModel: "计价模型 ID（可选）",

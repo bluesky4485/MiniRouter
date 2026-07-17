@@ -73,6 +73,7 @@ function getPromptParts(body: any): { prompt: string; systemPrompt?: string; cla
 }
 
 export function slotCanServeOpenAIChat(slot: ModelSlot): boolean {
+  // "auto" is allowed for OpenAI requests. Only explicit "anthropic" is rejected.
   return slot.provider !== "anthropic";
 }
 
@@ -123,6 +124,7 @@ export function selectConfiguredSlotForChat(
         toolCalling: features.requirements.toolCalling,
         agentic: features.requirements.agentic,
       },
+      protocol: 'openai-chat',
     }),
     debug: decision.debug ?? null,
   };
@@ -130,6 +132,7 @@ export function selectConfiguredSlotForChat(
 
 async function executeConfiguredSlot(body: any, slot: ModelSlot): Promise<{ upstream: Response; optimization: OptimizationLog }> {
   if (!slotCanServeOpenAIChat(slot)) {
+    // Prevents OpenAI protocol requests from being sent to Anthropic providers.
     return {
       upstream: Response.json(
       {
@@ -179,13 +182,14 @@ async function rejectIfSpendLimitExceeded(c: Context, auth: AuthResult): Promise
   );
 }
 
-function usageOptimizationFields(optimization: OptimizationLog) {
+function usageOptimizationFields(optimization: OptimizationLog | undefined | null) {
+  const o = optimization || {};
   return {
-    optimizationReason: optimization.reason,
-    compressionApplied: optimization.compression !== undefined,
-    compressionOriginalChars: optimization.compression?.originalChars,
-    compressionCompressedChars: optimization.compression?.compressedChars,
-    compressionBlocks: optimization.compression?.blocks,
+    optimizationReason: o.reason,
+    compressionApplied: o.compression !== undefined,
+    compressionOriginalChars: o.compression?.originalChars,
+    compressionCompressedChars: o.compression?.compressedChars,
+    compressionBlocks: o.compression?.blocks,
   };
 }
 
@@ -368,6 +372,7 @@ export async function chatCompletions(c: Context) {
         vision: features.requirements.vision,
       },
       executor: (slot) => executeConfiguredSlot(body, slot),
+      protocol: 'openai-chat',
     });
     trace(`execute_slot_done:${result.upstream.status}`);
     upstream = result.upstream;

@@ -290,6 +290,12 @@ to `{BASE_URL}/chat/completions`; Anthropic Messages requests are sent to
 `{BASE_URL}/messages`. Set `PROVIDER=anthropic` only when a slot must always use
 the native Anthropic Messages API.
 
+**Important compatibility rule (enforced at selection time):**
+- OpenAI-compatible channels/slots are never selected for Anthropic Messages requests.
+- Anthropic channels/slots are never selected for OpenAI Chat requests.
+- "auto" adapts to the request protocol.
+- This prevents protocol mismatch errors when mixing provider types in the same slot (especially with admin-managed channels).
+
 Upstream fetch timeout defaults to 180s and is configurable via
 `MINIROUTER_UPSTREAM_TIMEOUT_MS`.
 

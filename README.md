@@ -623,13 +623,21 @@ At least `balanced`, `strong`, and `vision` must be configured for the
 
 | Variable | Description |
 | --- | --- |
-| `MINIROUTER_{SLOT}_PROVIDER` | `openai-compatible`, `anthropic`, or omit for auto |
-| `MINIROUTER_{SLOT}_BASE_URL` | Upstream API endpoint |
+| `MINIROUTER_{SLOT}_PROVIDER` | `openai-compatible`, `anthropic`, or omit for `auto` (see below) |
+| `MINIROUTER_{SLOT}_BASE_URL` | Upstream API endpoint (include `/v1` if required by provider) |
 | `MINIROUTER_{SLOT}_API_KEY` | Provider authentication key |
 | `MINIROUTER_{SLOT}_MODEL` | Model name the upstream expects |
 | `MINIROUTER_{SLOT}_SUPPORTS_TOOLS` | `true` / `false` |
 | `MINIROUTER_{SLOT}_SUPPORTS_VISION` | `true` / `false` |
 | `MINIROUTER_{SLOT}_CONTEXT_WINDOW` | Maximum context length in tokens |
+
+**Provider protocol compatibility (important):**
+
+- `openai-compatible`: Only accepts OpenAI Chat Completions requests (`/v1/chat/completions`).
+- `anthropic`: Only accepts Anthropic Messages requests (`/v1/messages`).
+- `auto` (default): Adapts to the incoming request protocol. OpenAI-style requests are sent to `/chat/completions`; Anthropic-style requests are sent to `/messages`.
+
+**Do not mix protocols.** Sending an Anthropic Messages request to an `openai-compatible` slot (or vice versa) will result in a protocol mismatch error (400). The router now enforces this at slot/channel selection time. When using admin-managed channels, channels of different `provider_kind` in the same slot will only be considered for compatible protocols.
 
 ### Routing tuning (optional — sensible defaults are built in)
 
