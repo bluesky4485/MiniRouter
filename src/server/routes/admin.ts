@@ -13,6 +13,7 @@ import {
   disableProviderInstance,
   listProviderInstances,
   updateProviderInstance,
+  type UpsertProviderInstanceInput,
 } from "../../db/queries/provider-instances.js";
 import type { ProviderChannel } from "../../providers/channels.js";
 import type { ModelSlotName } from "../../providers/types.js";
@@ -321,7 +322,7 @@ export async function adminUpdateChannel(c: Context) {
   // Only allow safe fields to be updated via admin UI.
   // Changing slot is allowed (to reassign channel to different tier).
   // Never touch identity/sensitive fields like apiKey, endpointUrl, modelId here.
-  const safeUpdate: Record<string, any> = {};
+  const safeUpdate: Record<string, unknown> = {};
   const validSlots = ['balanced', 'fast', 'strong', 'vision'];
   if (body.slot && validSlots.includes(body.slot)) {
     safeUpdate.slot = body.slot;
@@ -349,7 +350,7 @@ export async function adminUpdateChannel(c: Context) {
     return c.json({ error: { message: "No valid fields to update" } }, 400);
   }
 
-  const channel = await updateProviderInstance(c.req.param("id")!, safeUpdate);
+  const channel = await updateProviderInstance(c.req.param("id")!, safeUpdate as Partial<UpsertProviderInstanceInput>);
   if (!channel) return c.json({ error: { message: "Channel not found" } }, 404);
   return c.json(publicChannel(channel));
 }
