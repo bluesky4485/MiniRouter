@@ -1195,18 +1195,20 @@
 
   async function editChannelSlot(channelId, currentSlot) {
     const slots = ["balanced", "fast", "strong", "vision"];
-    const newSlot = prompt(
+    const newSlotRaw = prompt(
       t("editSlotPrompt"),
       currentSlot
     );
-    if (!newSlot) return;
+    if (!newSlotRaw) return;
+    const newSlot = newSlotRaw.trim().toLowerCase();
     if (!slots.includes(newSlot)) {
       alert(t("invalidSlot"));
       return;
     }
-    if (newSlot === currentSlot) return;
+    if (newSlot === currentSlot.toLowerCase()) return;
 
     // Only send the slot field. Safe partial update.
+    // Never includes apiKey or other fields.
     await api("/admin/channels/" + channelId, {
       method: "PATCH",
       body: JSON.stringify({ slot: newSlot }),
