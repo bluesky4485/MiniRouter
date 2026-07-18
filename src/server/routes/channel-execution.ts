@@ -103,5 +103,12 @@ export async function executeWithChannelFallback<T>(opts: {
   if (lastUpstream && lastSlot) {
     return { slot: lastSlot, upstream: lastUpstream, optimization: lastOptimization ?? ({} as T) };
   }
+  const hasChannels = channels.length > 0;
+  if (hasChannels && opts.protocol) {
+    throw new Error(
+      `No provider channel for slot "${slotName}" can serve protocol ${opts.protocol}. ` +
+      `Check that channels registered for this slot have a matching providerKind (anthropic vs openai-compatible).`,
+    );
+  }
   throw new Error(`all provider channels failed for slot: ${slotName}`);
 }

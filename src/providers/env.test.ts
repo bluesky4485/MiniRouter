@@ -42,7 +42,7 @@ describe("loadModelSlotsFromEnv", () => {
 });
 
 describe("pickSlotForFeatures", () => {
-  it("uses balanced as the MVP default when the fast slot is not configured", () => {
+  it("uses balanced as the MVP default when the fast slot is not configured", async () => {
     const slots = loadModelSlotsFromEnv({
       MINIROUTER_BALANCED_PROVIDER: "openai-compatible",
       MINIROUTER_BALANCED_BASE_URL: "https://api.example.com/v1",
@@ -55,7 +55,7 @@ describe("pickSlotForFeatures", () => {
       MINIROUTER_STRONG_MODEL: "glm-5.2",
     });
 
-    const selected = pickSlotForFeatures(slots, {
+    const selected = await pickSlotForFeatures(slots, {
       tier: "SIMPLE",
       requirements: {
         vision: false,
@@ -68,7 +68,7 @@ describe("pickSlotForFeatures", () => {
     expect(selected.model).toBe("deepseek-v4-flash");
   });
 
-  it("routes automatic simple requests to fast when fast is configured", () => {
+  it("routes automatic simple requests to fast when fast is configured", async () => {
     const slots = loadModelSlotsFromEnv({
       MINIROUTER_FAST_PROVIDER: "openai-compatible",
       MINIROUTER_FAST_BASE_URL: "https://api.example.com/v1",
@@ -80,7 +80,7 @@ describe("pickSlotForFeatures", () => {
       MINIROUTER_BALANCED_MODEL: "deepseek-v4-flash",
     });
 
-    const selected = pickSlotForFeatures(slots, {
+    const selected = await pickSlotForFeatures(slots, {
       tier: "SIMPLE",
       requirements: {
         vision: false,
@@ -93,7 +93,7 @@ describe("pickSlotForFeatures", () => {
     expect(selected.model).toBe("glm-4.7-flash");
   });
 
-  it("routes automatic simple text requests to fast even when a vision slot is also configured", () => {
+  it("routes automatic simple text requests to fast even when a vision slot is also configured", async () => {
     const slots = loadModelSlotsFromEnv({
       MINIROUTER_FAST_PROVIDER: "openai-compatible",
       MINIROUTER_FAST_BASE_URL: "https://api.example.com/v1",
@@ -109,7 +109,7 @@ describe("pickSlotForFeatures", () => {
       MINIROUTER_VISION_MODEL: "glm-4.6v",
     });
 
-    const selected = pickSlotForFeatures(slots, {
+    const selected = await pickSlotForFeatures(slots, {
       tier: "SIMPLE",
       requirements: {
         vision: false,
@@ -122,7 +122,7 @@ describe("pickSlotForFeatures", () => {
     expect(selected.model).toBe("glm-4.7-flash");
   });
 
-  it("routes tool-using reasoning requests to strong when a vision slot is also configured", () => {
+  it("routes tool-using reasoning requests to strong when a vision slot is also configured", async () => {
     const slots = loadModelSlotsFromEnv({
       MINIROUTER_BALANCED_PROVIDER: "openai-compatible",
       MINIROUTER_BALANCED_BASE_URL: "https://api.example.com/v1",
@@ -142,7 +142,7 @@ describe("pickSlotForFeatures", () => {
       MINIROUTER_VISION_SUPPORTS_VISION: "true",
     });
 
-    const selected = pickSlotForFeatures(slots, {
+    const selected = await pickSlotForFeatures(slots, {
       tier: "REASONING",
       requirements: {
         vision: false,
@@ -155,7 +155,7 @@ describe("pickSlotForFeatures", () => {
     expect(selected.model).toBe("glm-5.2");
   });
 
-  it("routes tool-using agent requests to the balanced slot when configured", () => {
+  it("routes tool-using agent requests to the balanced slot when configured", async () => {
     const slots = loadModelSlotsFromEnv({
       MINIROUTER_FAST_PROVIDER: "openai-compatible",
       MINIROUTER_FAST_BASE_URL: "https://api.example.com/v1",
@@ -169,7 +169,7 @@ describe("pickSlotForFeatures", () => {
       MINIROUTER_BALANCED_SUPPORTS_TOOLS: "true",
     });
 
-    const selected = pickSlotForFeatures(slots, {
+    const selected = await pickSlotForFeatures(slots, {
       tier: "MEDIUM",
       requirements: {
         vision: false,
@@ -182,7 +182,7 @@ describe("pickSlotForFeatures", () => {
     expect(selected.model).toBe("deepseek-v4-flash");
   });
 
-  it("routes reasoning requests to the strong slot", () => {
+  it("routes reasoning requests to the strong slot", async () => {
     const slots = loadModelSlotsFromEnv({
       MINIROUTER_BALANCED_PROVIDER: "openai-compatible",
       MINIROUTER_BALANCED_BASE_URL: "https://api.example.com/v1",
@@ -194,7 +194,7 @@ describe("pickSlotForFeatures", () => {
       MINIROUTER_STRONG_MODEL: "glm-5.2",
     });
 
-    const selected = pickSlotForFeatures(slots, {
+    const selected = await pickSlotForFeatures(slots, {
       tier: "REASONING",
       requirements: {
         vision: false,

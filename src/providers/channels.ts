@@ -49,6 +49,30 @@ function normalizedWeight(channel: ProviderChannel): number {
   return Number.isFinite(channel.weight) && channel.weight > 0 ? Math.floor(channel.weight) : 1;
 }
 
+export function isProtocolCompatible(
+  channel: ProviderChannel,
+  protocol?: 'openai-chat' | 'anthropic-messages',
+): boolean {
+  if (protocol === 'openai-chat' && channel.providerKind === 'anthropic') return false;
+  if (protocol === 'anthropic-messages' && channel.providerKind === 'openai-compatible') return false;
+  return true;
+}
+
+export function hasViableChannelFor(
+  channels: ProviderChannel[],
+  protocol: 'openai-chat' | 'anthropic-messages' | undefined,
+  requirements: { toolCalling: boolean; vision: boolean },
+): boolean {
+  if (channels.length === 0) return false;
+  return channels.some((ch) => {
+    if (!ch.isHealthy) return false;
+    if (requirements.toolCalling && !ch.supportsTools) return false;
+    if (requirements.vision && !ch.supportsVision) return false;
+    if (!isProtocolCompatible(ch, protocol)) return false;
+    return true;
+  });
+}
+
 export function selectProviderChannel(
   channels: ProviderChannel[],
   input: ChannelSelectionInput,
@@ -61,8 +85,7 @@ export function selectProviderChannel(
     if (input.requirements.toolCalling && !channel.supportsTools) return false;
     if (input.requirements.vision && !channel.supportsVision) return false;
     if (input.excludeIds?.includes(channel.id)) return false;
-    if (input.protocol === 'openai-chat' && channel.providerKind === 'anthropic') return false;
-    if (input.protocol === 'anthropic-messages' && channel.providerKind === 'openai-compatible') return false;
+    if (!isProtocolCompatible(channel, input.protocol)) return false;
     // "auto" is compatible with both. This prevents Anthropic requests from being
     // routed to openai-compatible channels (and vice versa), which was a common
     // source of "request error" when using mixed channels in the same slot.

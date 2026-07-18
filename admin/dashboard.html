@@ -415,9 +415,9 @@
         <div class="form-grid">
           <select id="slot"><option data-i18n="slotBalanced">balanced</option><option data-i18n="slotFast">fast</option><option data-i18n="slotStrong">strong</option><option data-i18n="slotVision">vision</option></select>
           <select id="providerKind" title="openai-compatible: only for /chat/completions; anthropic: only for /messages; auto: adapts to request protocol">
-            <option data-i18n="kindOpenai">openai-compatible</option>
-            <option data-i18n="kindAnthropic">anthropic</option>
-            <option data-i18n="kindAuto">auto</option>
+            <option value="openai-compatible" data-i18n="kindOpenai">openai-compatible</option>
+            <option value="anthropic" data-i18n="kindAnthropic">anthropic</option>
+            <option value="auto" data-i18n="kindAuto">auto</option>
           </select>
           <input id="provider" type="text" data-i18n-ph="phProvider">
           <input id="modelId" type="text" data-i18n-ph="phModelId">
@@ -1208,7 +1208,10 @@
           const provider = escHtml(c.provider);
           const model = `<strong>${escHtml(c.model)}</strong><div class="muted mono">${escHtml(c.id)}</div>`;
           const pricing = escHtml(c.pricingModelId || "alias/default");
-          const kind = escHtml(c.providerKind);
+          const kind = c.providerKind === "anthropic" ? t("kindAnthropic")
+            : c.providerKind === "openai-compatible" ? t("kindOpenai")
+            : c.providerKind === "auto" ? t("kindAuto")
+            : escHtml(c.providerKind);
           const weight = Number(c.weight || 1);
           const healthCls = c.isHealthy ? "ok" : "bad";
           const healthText = c.isHealthy ? t("healthy") : t("disabled");

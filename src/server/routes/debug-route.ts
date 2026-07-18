@@ -44,10 +44,10 @@ function parseProfile(value: string | undefined): RouteProfile {
   return "auto";
 }
 
-export function buildEnvSlotDebugReceipt(body: any, env: EnvLike = process.env) {
+export async function buildEnvSlotDebugReceipt(body: any, env: EnvLike = process.env) {
   const request = normalizeOpenAIChatRequest(body);
   const features = extractRoutingFeatures(request);
-  const configured = selectConfiguredSlotForChat(body, env);
+  const configured = await selectConfiguredSlotForChat(body, env);
 
   if (!configured) {
     return {
@@ -103,10 +103,19 @@ export async function debugRoute(c: Context) {
   }
 
   const envSlots = loadModelSlotsFromEnv();
-  const useEnvSlot = source === "env-slot" || (source == null && Object.keys(envSlots).length > 0);
+  const hasEnv = Object.keys(envSlots).length > 0;
+  const useEnvSlot = source === "env-slot" || (source == null && hasEnv) || source == null;
 
   if (useEnvSlot) {
-    return c.json(buildEnvSlotDebugReceipt(body));
+    try {
+      return c.json(await buildEnvSlotDebugReceipt(body));
+    } catch (e: any) {
+      if (e.message && e.message.includes("No configured model slot")) {
+        // fall through to catalog or error
+      } else {
+        throw e;
+      }
+    }
   }
 
   const db = getDb();

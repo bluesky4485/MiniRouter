@@ -8,7 +8,7 @@ import { logUsage } from "../../db/queries/usage.js";
 import { randomUUID } from "node:crypto";
 import { normalizeAnthropicMessagesRequest } from "../../protocols/anthropic-messages.js";
 import { extractRoutingFeatures, type RoutingFeatures } from "../../routing/features/extractor.js";
-import { getSlotForRoutingModel, loadModelSlotsFromEnv, pickSlotForFeatures } from "../../providers/env.js";
+import { getSlotForRoutingModel, loadEffectiveModelSlots, loadModelSlotsFromEnv, pickSlotForFeatures } from "../../providers/env.js";
 import { executeAnthropicMessages } from "../../providers/anthropic.js";
 import type { ModelSlot } from "../../providers/types.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
@@ -79,11 +79,11 @@ function promptParts(request: ReturnType<typeof normalizeAnthropicMessagesReques
   return { prompt, systemPrompt: systemPrompt || undefined, classifierText };
 }
 
-export function selectConfiguredSlotForAnthropicMessages(
+export async function selectConfiguredSlotForAnthropicMessages(
   body: any,
   env: EnvLike = process.env,
-): SlotConfig | null {
-  const slots = loadModelSlotsFromEnv(env);
+): Promise<SlotConfig | null> {
+  const slots = await loadEffectiveModelSlots(env);
   if (Object.keys(slots).length === 0) return null;
 
   const request = normalizeAnthropicMessagesRequest(body);
@@ -119,7 +119,7 @@ export function selectConfiguredSlotForAnthropicMessages(
     tier: decision.tier,
     profile,
     effort,
-    slot: pickSlotForFeatures(slots, {
+    slot: await pickSlotForFeatures(slots, {
       tier: decision.tier,
       profile,
       requirements: {
@@ -251,7 +251,7 @@ export async function anthropicMessages(c: Context) {
   const promptDigest = extractPromptDigest(normalized.messages);
   let configured: SlotConfig | null;
   try {
-    configured = selectConfiguredSlotForAnthropicMessages(body);
+    configured = await selectConfiguredSlotForAnthropicMessages(body);
   } catch (error) {
     console.error("[MiniRouter] slot selection failed:", (error as Error).message);
     return createUnsatisfiedAnthropicSlotResponse();

@@ -1,5 +1,7 @@
 import type { ModelSlot, ModelSlotName, ModelSlots, ProviderKind } from "./types.js";
 import type { Tier } from "../router/types.js";
+import { listProviderInstances } from "../db/queries/provider-instances.js";
+import { hasViableChannelFor } from "./channels.js";
 
 const SLOT_NAMES: ModelSlotName[] = ["fast", "balanced", "strong", "vision"];
 
@@ -51,6 +53,40 @@ export function loadModelSlotsFromEnv(env: EnvLike = process.env): ModelSlots {
   return slots;
 }
 
+/**
+ * Load slots from env, and also discover any additional slots that have
+ * DB channels. This lets users manage everything via Admin UI (DB) without
+ * necessarily having every MINIROUTER_FAST_* etc defined.
+ * Discovered slots are given provider="auto" so DB providerKind decides.
+ */
+export async function loadEffectiveModelSlots(env: EnvLike = process.env): Promise<ModelSlots> {
+  const fromEnv = loadModelSlotsFromEnv(env);
+  const slots: ModelSlots = { ...fromEnv };
+
+  try {
+    const allChannels = await listProviderInstances(); // small table
+    for (const ch of allChannels) {
+      if (!ch.isHealthy) continue;
+      const s = ch.slot;
+      if (!slots[s]) {
+        slots[s] = {
+          slot: s,
+          provider: "auto",
+          baseUrl: "",
+          apiKey: "",
+          model: "",
+          supportsTools: true,
+          supportsVision: s === "vision",
+          contextWindowTokens: undefined,
+        };
+      }
+    }
+  } catch {
+    // DB not ready or no channels; ignore
+  }
+  return slots;
+}
+
 export function getSlotForRoutingModel(slots: ModelSlots, model: string): ModelSlot | undefined {
   const match = model.toLowerCase().match(/^minirouter\/slot\/(fast|balanced|strong|vision)$/);
   if (!match) return undefined;
@@ -73,8 +109,13 @@ function tierSlot(tier: Tier): ModelSlotName {
  *
  * Vision requests always go to the vision slot regardless of profile — vision
  * is a capability requirement, not a difficulty signal.
+ *
+ * When DB provider channels exist for a slot, only slots that have at least one
+ * healthy channel compatible with the request `protocol` (and requirements) are
+ * considered. This allows mixed openai-compatible + anthropic channels across
+ * slots without cross-protocol routing errors.
  */
-export function pickSlotForFeatures(
+export async function pickSlotForFeatures(
   slots: ModelSlots,
   input: {
     tier: Tier;
@@ -86,12 +127,28 @@ export function pickSlotForFeatures(
     };
     protocol?: 'openai-chat' | 'anthropic-messages';
   },
-): ModelSlot {
+): Promise<ModelSlot> {
   // Vision is a capability requirement — always the vision slot first.
   if (input.requirements.vision) {
     const visionSlot = slots.vision;
-    if (visionSlot) return visionSlot;
-    throw new Error("No configured vision slot can satisfy the request");
+    if (!visionSlot) {
+      throw new Error("No configured vision slot can satisfy the request");
+    }
+    // Protocol gate on env declaration
+    if (input.protocol === 'openai-chat' && visionSlot.provider === 'anthropic') {
+      throw new Error("No configured vision slot can satisfy the request");
+    }
+    if (input.protocol === 'anthropic-messages' && visionSlot.provider === 'openai-compatible') {
+      throw new Error("No configured vision slot can satisfy the request");
+    }
+    // If DB has channels for vision, at least one must be viable for this protocol
+    const dbChans = await listProviderInstances("vision");
+    if (dbChans.length > 0) {
+      if (!hasViableChannelFor(dbChans, input.protocol, input.requirements)) {
+        throw new Error("No configured vision slot can satisfy the request");
+      }
+    }
+    return visionSlot;
   }
 
   // Profile-driven slot selection (eco/premium override tier).
@@ -111,6 +168,16 @@ export function pickSlotForFeatures(
     // "auto" is compatible with the incoming protocol.
     // This fix ensures Anthropic Messages requests never land on openai-compatible
     // slots (and the other way around).
+
+    // When DB channels are registered for this slot, require at least one
+    // that matches protocol + basic requirements. This makes mixed-protocol
+    // setups (different providerKind per channel) work reliably.
+    const dbChans = await listProviderInstances(slot);
+    if (dbChans.length > 0) {
+      if (!hasViableChannelFor(dbChans, input.protocol, input.requirements)) {
+        continue;
+      }
+    }
     return candidate;
   }
 

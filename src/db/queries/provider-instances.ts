@@ -25,12 +25,21 @@ export type UpsertProviderInstanceInput = {
   notes?: string | null;
 };
 
+function normalizeProviderKind(raw: string | null | undefined): ProviderKind {
+  if (!raw) return "auto";
+  const v = String(raw).toLowerCase().trim();
+  if (v === "anthropic" || v.includes("anthropic")) return "anthropic";
+  if (v === "openai-compatible" || v.includes("openai")) return "openai-compatible";
+  if (v === "auto") return "auto";
+  return "auto";
+}
+
 export function mapProviderInstanceRow(row: ProviderInstanceRow): ProviderChannel {
   return {
     id: row.id,
     slot: row.slot as ModelSlotName,
     provider: row.provider,
-    providerKind: row.providerKind as ProviderKind,
+    providerKind: normalizeProviderKind(row.providerKind),
     baseUrl: row.endpointUrl,
     apiKey: row.apiKey ?? "",
     model: row.modelId,
@@ -75,7 +84,7 @@ export async function createProviderInstance(input: UpsertProviderInstanceInput)
     id,
     slot: input.slot,
     provider: input.provider,
-    providerKind: input.providerKind,
+    providerKind: normalizeProviderKind(input.providerKind),
     endpointUrl: input.endpointUrl,
     apiKey: input.apiKey,
     modelId: input.modelId,
@@ -106,7 +115,7 @@ export async function updateProviderInstance(
 
   if (input.slot) updates.slot = input.slot;
   if (input.provider) updates.provider = input.provider;
-  if (input.providerKind) updates.providerKind = input.providerKind;
+  if (input.providerKind) updates.providerKind = normalizeProviderKind(input.providerKind);
   if (input.endpointUrl) updates.endpointUrl = input.endpointUrl;
   if (input.apiKey !== undefined) updates.apiKey = input.apiKey;
   if (input.modelId) updates.modelId = input.modelId;
