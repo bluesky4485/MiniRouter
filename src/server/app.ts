@@ -70,6 +70,7 @@ export function createApp(): Hono {
   app.get("/api/models", listModelScores);
   app.get("/api/models/:id", getModelScore);
   app.get("/admin/dashboard", serveAdminDashboard);
+  app.get("/debug/route", debugRoute);
   app.post("/debug/route", debugRoute);
 
   // ─── Authenticated routes ────────────────────────────────────────

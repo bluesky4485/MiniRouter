@@ -80,7 +80,12 @@ export function buildEnvSlotDebugReceipt(body: any, env: EnvLike = process.env) 
 }
 
 export async function debugRoute(c: Context) {
-  const body = await c.req.json();
+  let body: any = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    // GET request or no body; use empty body for env-slot debug
+  }
   const profile = parseProfile(c.req.query("profile") ?? body.profile);
   const source = c.req.query("source") ?? c.req.query("mode") ?? body.source ?? body.mode;
   const protocol = body.protocol ?? "openai-chat";
