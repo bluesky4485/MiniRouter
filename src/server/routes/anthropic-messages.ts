@@ -82,8 +82,9 @@ function promptParts(request: ReturnType<typeof normalizeAnthropicMessagesReques
 export async function selectConfiguredSlotForAnthropicMessages(
   body: any,
   env: EnvLike = process.env,
+  options?: { discoverFromDb?: boolean },
 ): Promise<SlotConfig | null> {
-  const slots = await loadEffectiveModelSlots(env);
+  const slots = await loadEffectiveModelSlots(env, options);
   if (Object.keys(slots).length === 0) return null;
 
   const request = normalizeAnthropicMessagesRequest(body);

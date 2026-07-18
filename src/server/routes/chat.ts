@@ -80,8 +80,9 @@ export function slotCanServeOpenAIChat(slot: ModelSlot): boolean {
 export async function selectConfiguredSlotForChat(
   body: any,
   env: EnvLike = process.env,
+  options?: { discoverFromDb?: boolean },
 ): Promise<{ slot: ModelSlot; tier: RoutedTier; profile: "auto" | "eco" | "premium" | undefined; effort?: string; debug: unknown } | null> {
-  const slots = await loadEffectiveModelSlots(env);
+  const slots = await loadEffectiveModelSlots(env, options);
   if (Object.keys(slots).length === 0) return null;
 
   const request = normalizeOpenAIChatRequest(body);

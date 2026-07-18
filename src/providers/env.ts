@@ -1,7 +1,7 @@
 import type { ModelSlot, ModelSlotName, ModelSlots, ProviderKind } from "./types.js";
 import type { Tier } from "../router/types.js";
 import { listProviderInstances } from "../db/queries/provider-instances.js";
-import { hasViableChannelFor } from "./channels.js";
+import { hasViableChannelFor, type ProviderChannel } from "./channels.js";
 
 const SLOT_NAMES: ModelSlotName[] = ["fast", "balanced", "strong", "vision"];
 
@@ -59,30 +59,35 @@ export function loadModelSlotsFromEnv(env: EnvLike = process.env): ModelSlots {
  * necessarily having every MINIROUTER_FAST_* etc defined.
  * Discovered slots are given provider="auto" so DB providerKind decides.
  */
-export async function loadEffectiveModelSlots(env: EnvLike = process.env): Promise<ModelSlots> {
+export async function loadEffectiveModelSlots(
+  env: EnvLike = process.env,
+  options: { discoverFromDb?: boolean } = {}
+): Promise<ModelSlots> {
   const fromEnv = loadModelSlotsFromEnv(env);
   const slots: ModelSlots = { ...fromEnv };
 
-  try {
-    const allChannels = await listProviderInstances(); // small table
-    for (const ch of allChannels) {
-      if (!ch.isHealthy) continue;
-      const s = ch.slot;
-      if (!slots[s]) {
-        slots[s] = {
-          slot: s,
-          provider: "auto",
-          baseUrl: "",
-          apiKey: "",
-          model: "",
-          supportsTools: true,
-          supportsVision: s === "vision",
-          contextWindowTokens: undefined,
-        };
+  if (options.discoverFromDb !== false) {
+    try {
+      const allChannels = await listProviderInstances(); // small table
+      for (const ch of allChannels) {
+        if (!ch.isHealthy) continue;
+        const s = ch.slot;
+        if (!slots[s]) {
+          slots[s] = {
+            slot: s,
+            provider: "auto",
+            baseUrl: "",
+            apiKey: "",
+            model: "",
+            supportsTools: true,
+            supportsVision: s === "vision",
+            contextWindowTokens: undefined,
+          };
+        }
       }
+    } catch {
+      // DB not ready or no channels; ignore
     }
-  } catch {
-    // DB not ready or no channels; ignore
   }
   return slots;
 }
@@ -142,7 +147,13 @@ export async function pickSlotForFeatures(
       throw new Error("No configured vision slot can satisfy the request");
     }
     // If DB has channels for vision, at least one must be viable for this protocol
-    const dbChans = await listProviderInstances("vision");
+    const dbChans: ProviderChannel[] = await (async () => {
+      try {
+        return await listProviderInstances("vision");
+      } catch {
+        return [];
+      }
+    })();
     if (dbChans.length > 0) {
       if (!hasViableChannelFor(dbChans, input.protocol, input.requirements)) {
         throw new Error("No configured vision slot can satisfy the request");
@@ -172,7 +183,13 @@ export async function pickSlotForFeatures(
     // When DB channels are registered for this slot, require at least one
     // that matches protocol + basic requirements. This makes mixed-protocol
     // setups (different providerKind per channel) work reliably.
-    const dbChans = await listProviderInstances(slot);
+    const dbChans: ProviderChannel[] = await (async () => {
+      try {
+        return await listProviderInstances(slot);
+      } catch {
+        return [];
+      }
+    })();
     if (dbChans.length > 0) {
       if (!hasViableChannelFor(dbChans, input.protocol, input.requirements)) {
         continue;

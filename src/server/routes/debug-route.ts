@@ -47,7 +47,7 @@ function parseProfile(value: string | undefined): RouteProfile {
 export async function buildEnvSlotDebugReceipt(body: any, env: EnvLike = process.env) {
   const request = normalizeOpenAIChatRequest(body);
   const features = extractRoutingFeatures(request);
-  const configured = await selectConfiguredSlotForChat(body, env);
+  const configured = await selectConfiguredSlotForChat(body, env, { discoverFromDb: false });
 
   if (!configured) {
     return {
