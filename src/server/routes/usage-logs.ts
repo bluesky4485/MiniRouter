@@ -84,13 +84,16 @@ export async function getUsageLogs(c: Context) {
   if (tier) conditions.push(eq(usageLogs.tier, tier));
   if (model) conditions.push(eq(usageLogs.model, model));
 
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
   const query = db
     .select()
     .from(usageLogs)
+    .where(whereClause)
     .orderBy(desc(usageLogs.createdAt))
     .limit(limit)
     .offset(offset);
-  const rows = conditions.length > 0 ? await query.where(and(...conditions)) : await query;
+  const rows = await query;
 
   const logs: UsageLogEntry[] = rows.map((r) => ({
     id: Number(r.id),
@@ -127,9 +130,17 @@ export async function getUsageLogs(c: Context) {
     createdAt: r.createdAt,
   }));
 
+  // Total count for pagination
+  const totalResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(usageLogs)
+    .where(whereClause);
+  const total = Number(totalResult[0]?.count ?? 0);
+
   return c.json({
     data: logs,
     count: logs.length,
+    total,
     limit,
     offset,
   });

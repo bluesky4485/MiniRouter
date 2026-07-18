@@ -457,6 +457,13 @@
           <tbody id="logs"><tr><td colspan="8" class="empty-state" data-i18n="logsEmpty">No usage loaded.</td></tr></tbody>
         </table>
       </div>
+      <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:8px;font-size:13px;">
+        <div>
+          <button class="secondary" data-action="logs-prev" data-i18n="prev">Prev</button>
+          <button class="secondary" data-action="logs-next" data-i18n="next">Next</button>
+        </div>
+        <div id="logsPageInfo" class="muted"></div>
+      </div>
     </section>
   </div>
   </div>
@@ -582,6 +589,8 @@
       optAllTiers: "all tiers",
       phModelFilter: "model filter",
       filter: "Filter",
+      prev: "Prev",
+      next: "Next",
       thTime: "Time",
       thRoute: "Route",
       thStatusCol: "Status",
@@ -735,6 +744,8 @@
       optAllTiers: "全部层级",
       phModelFilter: "模型筛选",
       filter: "筛选",
+      prev: "上一页",
+      next: "下一页",
       thTime: "时间",
       thRoute: "路由",
       thStatusCol: "状态",
@@ -838,6 +849,8 @@
   const $ = (id) => document.getElementById(id);
   let selectedUserId = "";
   let selectedUserEmail = "";
+  let logsOffset = 0;
+  const LOGS_LIMIT = 50;
 
   // ── Token management ──────────────────────────────────────────
   function token() { return localStorage.getItem("minirouter_admin_token") || ""; }
@@ -1386,8 +1399,12 @@
     });
   }
 
-  async function loadLogs() {
-    const params = new URLSearchParams({ limit: "50" });
+  async function loadLogs(reset = false) {
+    if (reset) logsOffset = 0;
+    const params = new URLSearchParams({ 
+      limit: LOGS_LIMIT.toString(),
+      offset: logsOffset.toString()
+    });
     if ($("logStatus").value) params.set("status", $("logStatus").value);
     if ($("logTier").value) params.set("tier", $("logTier").value);
     if ($("logModel").value.trim()) params.set("model", $("logModel").value.trim());
@@ -1442,6 +1459,27 @@
           </tr>`;
         }).join("")
       : `<tr><td colspan="8" class="empty-state">${t("logsEmpty")}</td></tr>`;
+
+    updateLogsPagination(payload);
+  }
+
+  function updateLogsPagination(payload) {
+    const infoEl = $("logsPageInfo");
+    if (!infoEl) return;
+    const start = logsOffset + 1;
+    const end = logsOffset + (payload.data ? payload.data.length : 0);
+    const total = payload.total != null ? payload.total : '?';
+    infoEl.textContent = `${start}-${end} / ${total}`;
+
+    // simple button state
+    const prev = document.querySelector('[data-action="logs-prev"]');
+    const next = document.querySelector('[data-action="logs-next"]');
+    if (prev) prev.disabled = logsOffset === 0;
+    if (next) {
+      const gotFullPage = payload.data && payload.data.length === LOGS_LIMIT;
+      const moreByTotal = payload.total == null || (logsOffset + LOGS_LIMIT < payload.total);
+      next.disabled = !(gotFullPage && moreByTotal);
+    }
   }
 
   // ── Event delegation (safe, no inline onclick with user data) ──
@@ -1520,6 +1558,14 @@
         createChannel().catch((err) => setNotice(err.message));
         break;
       case "filter-logs":
+        loadLogs(true).catch((err) => setNotice(err.message));
+        break;
+      case "logs-prev":
+        logsOffset = Math.max(0, logsOffset - LOGS_LIMIT);
+        loadLogs().catch((err) => setNotice(err.message));
+        break;
+      case "logs-next":
+        logsOffset += LOGS_LIMIT;
         loadLogs().catch((err) => setNotice(err.message));
         break;
       case "select-user":
@@ -1633,7 +1679,7 @@
       loading(true);
       // Verify the token (or solo mode if no token)
       await api("/admin/verify");
-      await Promise.all([loadOverview(), loadUsers(), loadChannels(), loadLogs()]);
+      await Promise.all([loadOverview(), loadUsers(), loadChannels(), loadLogs(true)]);
       if (selectedUserId) await loadKeys();
       showApp();
     } catch (error) {
@@ -1648,6 +1694,17 @@
   // ── Language switcher ─────────────────────────────────────
   document.querySelectorAll(".lang-btn").forEach((b) => {
     b.addEventListener("click", () => setLang(b.dataset.lang));
+  });
+
+  // Auto filter logs on select/input change
+  ["logStatus", "logTier", "logModel"].forEach(id => {
+    const el = $(id);
+    if (el) {
+      el.addEventListener("change", () => loadLogs(true).catch(e => setNotice(e.message)));
+      if (el.tagName === "INPUT") {
+        el.addEventListener("keydown", e => { if (e.key === "Enter") loadLogs(true).catch(err => setNotice(err.message)); });
+      }
+    }
   });
 
   // ── Init ──────────────────────────────────────────────────────
