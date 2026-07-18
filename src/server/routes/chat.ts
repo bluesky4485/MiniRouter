@@ -16,7 +16,7 @@ import { logUsage } from "../../db/queries/usage.js";
 import { randomUUID } from "node:crypto";
 import { normalizeOpenAIChatRequest } from "../../protocols/openai-chat.js";
 import { extractRoutingFeatures } from "../../routing/features/extractor.js";
-import { getSlotForRoutingModel, loadEffectiveModelSlots, loadModelSlotsFromEnv, pickSlotForFeatures } from "../../providers/env.js";
+import { getSlotForRoutingModel, loadEffectiveModelSlots, pickSlotForFeatures } from "../../providers/env.js";
 import type { ModelSlot } from "../../providers/types.js";
 import { executeOpenAICompatibleChat } from "../../providers/openai-compatible.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
