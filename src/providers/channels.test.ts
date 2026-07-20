@@ -39,7 +39,64 @@ describe("selectProviderChannel", () => {
     expect(selected?.channel.id).toBe("eligible");
   });
 
-  it("uses weighted round-robin across eligible channels", () => {
+  it("uses weighted-primary strategy by default (highest weight first)", () => {
+    const channels = [
+      channel({ id: "a", weight: 3 }),
+      channel({ id: "b", weight: 1 }),
+      channel({ id: "c", weight: 2 }),
+    ];
+
+    expect(selectProviderChannel(channels, {
+      slot: "balanced",
+      requirements: { toolCalling: false, vision: false },
+      cursor: 0,
+      now: new Date("2026-07-07T00:00:00.000Z"),
+    })?.channel.id).toBe("a");
+
+    // Cursor is ignored in weighted-primary mode.
+    expect(selectProviderChannel(channels, {
+      slot: "balanced",
+      requirements: { toolCalling: false, vision: false },
+      cursor: 99,
+      now: new Date("2026-07-07T00:00:00.000Z"),
+    })?.channel.id).toBe("a");
+  });
+
+  it("prefers the pinned provider when it is eligible", () => {
+    const channels = [
+      channel({ id: "a", weight: 5 }),
+      channel({ id: "b", weight: 1 }),
+    ];
+
+    const selected = selectProviderChannel(channels, {
+      slot: "balanced",
+      requirements: { toolCalling: false, vision: false },
+      cursor: 0,
+      now: new Date("2026-07-07T00:00:00.000Z"),
+      pinnedProviderId: "b",
+    });
+
+    expect(selected?.channel.id).toBe("b");
+  });
+
+  it("falls back to weighted-primary when pinned provider is ineligible", () => {
+    const channels = [
+      channel({ id: "a", weight: 5 }),
+      channel({ id: "b", weight: 1, isHealthy: false }),
+    ];
+
+    const selected = selectProviderChannel(channels, {
+      slot: "balanced",
+      requirements: { toolCalling: false, vision: false },
+      cursor: 0,
+      now: new Date("2026-07-07T00:00:00.000Z"),
+      pinnedProviderId: "b",
+    });
+
+    expect(selected?.channel.id).toBe("a");
+  });
+
+  it("uses weighted round-robin when strategy is round-robin", () => {
     const channels = [
       channel({ id: "a", weight: 2 }),
       channel({ id: "b", weight: 1 }),
@@ -49,18 +106,21 @@ describe("selectProviderChannel", () => {
       slot: "balanced",
       requirements: { toolCalling: false, vision: false },
       cursor: 0,
+      strategy: "round-robin",
       now: new Date("2026-07-07T00:00:00.000Z"),
     })?.channel.id).toBe("a");
     expect(selectProviderChannel(channels, {
       slot: "balanced",
       requirements: { toolCalling: false, vision: false },
       cursor: 1,
+      strategy: "round-robin",
       now: new Date("2026-07-07T00:00:00.000Z"),
     })?.channel.id).toBe("a");
     expect(selectProviderChannel(channels, {
       slot: "balanced",
       requirements: { toolCalling: false, vision: false },
       cursor: 2,
+      strategy: "round-robin",
       now: new Date("2026-07-07T00:00:00.000Z"),
     })?.channel.id).toBe("b");
   });

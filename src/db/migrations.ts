@@ -219,6 +219,22 @@ export async function runMigrations(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, last_used_at)
   `);
 
+  // ─── Session Provider Pins ────────────────────────────────────────
+  // Multi-turn conversations are pinned to the last successful provider
+  // instance for a slot, improving cache hit rate and output consistency.
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS session_provider_pins (
+      session_id TEXT NOT NULL,
+      slot TEXT NOT NULL,
+      provider_instance_id TEXT NOT NULL,
+      last_used_at TEXT NOT NULL,
+      PRIMARY KEY (session_id, slot)
+    )
+  `);
+  db.run(sql`
+    CREATE INDEX IF NOT EXISTS idx_session_provider_pins_last_used ON session_provider_pins(last_used_at)
+  `);
+
   // ─── Model Scorecard ──────────────────────────────────────────────
   db.run(sql`
     CREATE TABLE IF NOT EXISTS model_scores (

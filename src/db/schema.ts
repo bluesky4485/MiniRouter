@@ -241,6 +241,19 @@ export const teamMembers = sqliteTable(
   (table) => [primaryKey({ columns: [table.teamId, table.userId] })],
 );
 
+// ─── Session Provider Pins ──────────────────────────────────────────
+
+export const sessionProviderPins = sqliteTable(
+  "session_provider_pins",
+  {
+    sessionId: text("session_id").notNull(),
+    slot: text("slot").notNull(),
+    providerInstanceId: text("provider_instance_id").notNull(),
+    lastUsedAt: text("last_used_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.sessionId, table.slot] }), index("idx_session_provider_pins_last_used").on(table.lastUsedAt)],
+);
+
 // ─── Model Scorecard ──────────────────────────────────────────────
 
 /**

@@ -8,16 +8,26 @@
  * tried. This gives per-request failover / load-balancing across channels
  * sharing a slot, instead of failing the whole request on the first bad
  * channel.
+ *
+ * Session pinning: when `sessionId` is provided, the last successful
+ * provider instance for that session+slot is remembered. Subsequent
+ * requests in the same session prefer the pinned provider, only failing
+ * over (and clearing the pin) when it becomes unhealthy or errors out.
  */
 
 import type { ModelSlot, ModelSlotName } from "../../providers/types.js";
-import { selectProviderChannel } from "../../providers/channels.js";
+import { selectProviderChannel, type ChannelSelectionStrategy } from "../../providers/channels.js";
 import {
   channelToModelSlot,
   listProviderInstances,
   recordProviderFailure,
   recordProviderSuccess,
 } from "../../db/queries/provider-instances.js";
+import {
+  getSessionProviderPin,
+  setSessionProviderPin,
+  clearSessionProviderPin,
+} from "../../db/queries/session-provider-pins.js";
 
 /** Per-slot round-robin cursor, shared across chat + anthropic routes. */
 export const channelCursors = new Map<string, number>();
@@ -50,12 +60,19 @@ export async function executeWithChannelFallback<T>(opts: {
   now?: Date;
   maxAttempts?: number;
   protocol?: 'openai-chat' | 'anthropic-messages';
+  sessionId?: string;
+  strategy?: ChannelSelectionStrategy;
 }): Promise<ChannelExecutionResult<T>> {
-  const { slot: slotName, requirements, executor, now } = opts;
+  const { slot: slotName, requirements, executor, now, strategy } = opts;
   const channels = await listProviderInstances(slotName);
   const tried = new Set<string>();
   const maxAttempts = opts.maxAttempts ?? Math.max(1, channels.length);
   const startedAt = Date.now();
+
+  let pinnedProviderId: string | undefined;
+  if (opts.sessionId) {
+    pinnedProviderId = await getSessionProviderPin(opts.sessionId, slotName);
+  }
 
   let lastUpstream: Response | undefined;
   let lastSlot: ModelSlot | undefined;
@@ -69,6 +86,8 @@ export async function executeWithChannelFallback<T>(opts: {
       now,
       excludeIds: [...tried],
       protocol: opts.protocol,
+      strategy,
+      pinnedProviderId,
     });
     if (!selection) break;
 
@@ -82,10 +101,17 @@ export async function executeWithChannelFallback<T>(opts: {
         if (selectedSlot.providerInstanceId) {
           await recordProviderSuccess(selectedSlot.providerInstanceId, Date.now() - startedAt);
         }
+        if (opts.sessionId && selectedSlot.providerInstanceId) {
+          await setSessionProviderPin(opts.sessionId, slotName, selectedSlot.providerInstanceId);
+        }
         return { slot: selectedSlot, upstream: result.upstream, optimization: result.optimization };
       }
       if (selectedSlot.providerInstanceId) {
         await recordProviderFailure(selectedSlot.providerInstanceId);
+      }
+      if (opts.sessionId && selectedSlot.providerInstanceId === pinnedProviderId) {
+        await clearSessionProviderPin(opts.sessionId, slotName);
+        pinnedProviderId = undefined;
       }
       lastUpstream = result.upstream;
       lastSlot = selectedSlot;
@@ -93,6 +119,10 @@ export async function executeWithChannelFallback<T>(opts: {
     } catch {
       if (selectedSlot.providerInstanceId) {
         await recordProviderFailure(selectedSlot.providerInstanceId);
+      }
+      if (opts.sessionId && selectedSlot.providerInstanceId === pinnedProviderId) {
+        await clearSessionProviderPin(opts.sessionId, slotName);
+        pinnedProviderId = undefined;
       }
       lastUpstream = undefined;
       lastSlot = selectedSlot;

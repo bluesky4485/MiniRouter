@@ -14,6 +14,7 @@ import type { ModelSlot } from "../../providers/types.js";
 import { optimizeWithHeadroom } from "../../context/headroom.js";
 import { parseAnthropicUsage, toMutableUpstreamResponse } from "./chat.js";
 import { extractPromptDigest, extractLastUserText } from "../../routing/features/prompt-digest.js";
+import { extractSessionId } from "../session-id.js";
 import { createSseUsageTap } from "../sse-usage-tap.js";
 import { estimateUsdCostForModel } from "../../router/cost.js";
 import { isSpendLimitExceeded } from "../../db/queries/spend.js";
@@ -250,6 +251,7 @@ export async function anthropicMessages(c: Context) {
   if (spendLimitResponse) return spendLimitResponse;
   const normalized = normalizeAnthropicMessagesRequest(body);
   const promptDigest = extractPromptDigest(normalized.messages);
+  const sessionId = extractSessionId(c, normalized.messages, auth.userId);
   let configured: SlotConfig | null;
   try {
     configured = await selectConfiguredSlotForAnthropicMessages(body);
@@ -271,6 +273,7 @@ export async function anthropicMessages(c: Context) {
       },
       executor: (slot) => executeConfiguredAnthropicBody(body, slot),
       protocol: 'anthropic-messages',
+      sessionId,
     });
     upstream = result.upstream;
     optimization = result.optimization;

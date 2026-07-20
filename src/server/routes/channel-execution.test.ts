@@ -9,11 +9,17 @@ const {
   mockRecordProviderSuccess,
   mockSelectProviderChannel,
   mockChannelToModelSlot,
+  mockGetSessionProviderPin,
+  mockSetSessionProviderPin,
+  mockClearSessionProviderPin,
 } = vi.hoisted(() => ({
   mockListProviderInstances: vi.fn(),
   mockRecordProviderFailure: vi.fn(),
   mockRecordProviderSuccess: vi.fn(),
   mockSelectProviderChannel: vi.fn(),
+  mockGetSessionProviderPin: vi.fn(),
+  mockSetSessionProviderPin: vi.fn(),
+  mockClearSessionProviderPin: vi.fn(),
   mockChannelToModelSlot: (ch: ProviderChannel): ModelSlot => ({
     slot: ch.slot,
     provider: ch.providerKind,
@@ -33,6 +39,12 @@ vi.mock("../../db/queries/provider-instances.js", () => ({
   listProviderInstances: mockListProviderInstances,
   recordProviderFailure: mockRecordProviderFailure,
   recordProviderSuccess: mockRecordProviderSuccess,
+}));
+
+vi.mock("../../db/queries/session-provider-pins.js", () => ({
+  getSessionProviderPin: mockGetSessionProviderPin,
+  setSessionProviderPin: mockSetSessionProviderPin,
+  clearSessionProviderPin: mockClearSessionProviderPin,
 }));
 
 vi.mock("../../providers/channels.js", () => ({
@@ -151,5 +163,99 @@ describe("executeWithChannelFallback", () => {
       executeWithChannelFallback({ slot: "fast" as ModelSlotName, requirements: { toolCalling: false, vision: false }, executor }),
     ).rejects.toThrow(/all provider channels failed/);
     expect(executor).toHaveBeenCalledTimes(2);
+  });
+
+  describe("session pinning", () => {
+    it("pins the successful provider instance when sessionId is provided", async () => {
+      const channels = [makeChannel("a"), makeChannel("b")];
+      mockListProviderInstances.mockResolvedValue(channels);
+      mockSelectProviderChannel.mockImplementation((chs: ProviderChannel[], input: ChannelSelectionInput) => pickNext(chs, input));
+      mockGetSessionProviderPin.mockResolvedValue(undefined);
+
+      const executor = vi.fn(async () => ({ upstream: okResponse(), optimization: {} }));
+      await executeWithChannelFallback({
+        slot: "fast" as ModelSlotName,
+        requirements: { toolCalling: false, vision: false },
+        executor,
+        sessionId: "sess-1",
+      });
+
+      expect(mockGetSessionProviderPin).toHaveBeenCalledWith("sess-1", "fast");
+      expect(mockSetSessionProviderPin).toHaveBeenCalledWith("sess-1", "fast", "a");
+      expect(mockClearSessionProviderPin).not.toHaveBeenCalled();
+    });
+
+    it("uses the pinned provider when one exists", async () => {
+      const channels = [makeChannel("a"), makeChannel("b")];
+      mockListProviderInstances.mockResolvedValue(channels);
+      mockSelectProviderChannel.mockImplementation((chs: ProviderChannel[], input: ChannelSelectionInput) => {
+        const pinned = chs.find((c) => c.id === input.pinnedProviderId) ?? chs.find((c) => !input.excludeIds?.includes(c.id));
+        return pinned ? { channel: pinned, nextCursor: 1 } : undefined;
+      });
+      mockGetSessionProviderPin.mockResolvedValue("b");
+
+      const executor = vi.fn(async () => ({ upstream: okResponse(), optimization: {} }));
+      const result = await executeWithChannelFallback({
+        slot: "fast" as ModelSlotName,
+        requirements: { toolCalling: false, vision: false },
+        executor,
+        sessionId: "sess-1",
+      });
+
+      expect(result.slot.providerInstanceId).toBe("b");
+      expect(executor).toHaveBeenCalledTimes(1);
+      expect(mockSetSessionProviderPin).toHaveBeenCalledWith("sess-1", "fast", "b");
+    });
+
+    it("clears the pin and fails over when the pinned provider fails", async () => {
+      const channels = [makeChannel("a"), makeChannel("b")];
+      mockListProviderInstances.mockResolvedValue(channels);
+      mockSelectProviderChannel.mockImplementation((chs: ProviderChannel[], input: ChannelSelectionInput) => {
+        const pinned = chs.find((c) => c.id === input.pinnedProviderId) ?? chs.find((c) => !input.excludeIds?.includes(c.id));
+        return pinned ? { channel: pinned, nextCursor: 1 } : undefined;
+      });
+      mockGetSessionProviderPin.mockResolvedValue("a");
+
+      const executor = vi
+        .fn()
+        .mockResolvedValueOnce({ upstream: badResponse(), optimization: {} })
+        .mockResolvedValueOnce({ upstream: okResponse(), optimization: {} });
+
+      const result = await executeWithChannelFallback({
+        slot: "fast" as ModelSlotName,
+        requirements: { toolCalling: false, vision: false },
+        executor,
+        sessionId: "sess-1",
+      });
+
+      expect(result.slot.providerInstanceId).toBe("b");
+      expect(mockRecordProviderFailure).toHaveBeenCalledWith("a");
+      expect(mockClearSessionProviderPin).toHaveBeenCalledWith("sess-1", "fast");
+      expect(mockSetSessionProviderPin).toHaveBeenCalledWith("sess-1", "fast", "b");
+    });
+
+    it("clears the pin when the pinned provider throws", async () => {
+      const channels = [makeChannel("a"), makeChannel("b")];
+      mockListProviderInstances.mockResolvedValue(channels);
+      mockSelectProviderChannel.mockImplementation((chs: ProviderChannel[], input: ChannelSelectionInput) => {
+        const pinned = chs.find((c) => c.id === input.pinnedProviderId) ?? chs.find((c) => !input.excludeIds?.includes(c.id));
+        return pinned ? { channel: pinned, nextCursor: 1 } : undefined;
+      });
+      mockGetSessionProviderPin.mockResolvedValue("a");
+
+      const executor = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("network"))
+        .mockResolvedValueOnce({ upstream: okResponse(), optimization: {} });
+
+      await executeWithChannelFallback({
+        slot: "fast" as ModelSlotName,
+        requirements: { toolCalling: false, vision: false },
+        executor,
+        sessionId: "sess-1",
+      });
+
+      expect(mockClearSessionProviderPin).toHaveBeenCalledWith("sess-1", "fast");
+    });
   });
 });

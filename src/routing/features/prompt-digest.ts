@@ -35,7 +35,7 @@ export function extractPromptDigest(
   return null;
 }
 
-function extractTextFromContent(content: unknown): string {
+export function extractTextFromContent(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
 
